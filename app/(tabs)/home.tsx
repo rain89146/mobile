@@ -1,11 +1,18 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { Image, StyleSheet, Platform, Button } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 
+import useToastHook from '@/hooks/useToastHook';
+import { useRouter } from 'expo-router';
+
 export default function HomeScreen() {
+
+  const router = useRouter();
+  const {showToast, hideToast} = useToastHook();
+  
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -33,6 +40,20 @@ export default function HomeScreen() {
           </ThemedText>{' '}
           to open developer tools.
         </ThemedText>
+        <Button
+          title="Show toast"
+          onPress={() => showToast({
+            type: 'error',
+            text1: 'Hello',
+            text2: 'This is some something 👋',
+            onPress: () => {
+              hideToast()
+              router.navigate('/')
+            }
+          })}
+          color="#841584"
+          accessibilityLabel="Tap me to show a toast"
+        />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Step 2: Explore</ThemedText>
