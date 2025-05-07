@@ -48,7 +48,6 @@ export default function HomeScreen() {
             text2: 'This is some something 👋',
             onPress: () => {
               hideToast()
-              router.navigate('/')
             }
           })}
           color="#841584"

@@ -34,28 +34,28 @@ export default function TabLayout() {
 				animation: 'shift',
 			} as BottomTabNavigationOptions}>
 			<Tabs.Screen
-				name="home"
+				name="(home)"
 				options={{
 				title: 'Home',
 				tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
 				}}
 			/>
 			<Tabs.Screen
-				name="explore"
+				name="(explore)"
 				options={{
 				title: 'Explore',
 				tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
 				}}
 			/>
 			<Tabs.Screen
-				name="inbox"
+				name="(inbox)"
 				options={{
 				title: 'Inbox',
 				tabBarIcon: ({ color }) => <IconSymbol size={28} name="envelope.fill" color={color} />,
 				}}
 			/>
 			<Tabs.Screen
-				name="account"
+				name="(account)"
 				options={{
 				title: 'account',
 				tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,

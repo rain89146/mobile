@@ -11,6 +11,10 @@ import "../global.css"
 import { GeneralContextProvider } from '@/contexts/GeneralContext';
 
 import Toast from 'react-native-toast-message';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
+import { CameraContextProvider } from '@/contexts/CameraContext';
+import { AuthContextProvider } from '@/contexts/AuthenticationContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -31,13 +35,22 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
-    <GeneralContextProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack/>
-        <StatusBar style="auto" />
-        <Toast />
-      </ThemeProvider>
-    </GeneralContextProvider>
-  );
+	return (
+		<GeneralContextProvider>
+			<GestureHandlerRootView>
+				<AuthContextProvider>
+					<BottomSheetModalProvider>
+						<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+							<Stack>
+								<Stack.Screen 
+									name="index" 
+									options={{ headerShown: false }}
+								/>
+							</Stack>
+						</ThemeProvider>
+					</BottomSheetModalProvider>
+				</AuthContextProvider>
+			</GestureHandlerRootView>
+		</GeneralContextProvider>
+	);
 }
