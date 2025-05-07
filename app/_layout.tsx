@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
 import { CameraContextProvider } from '@/contexts/CameraContext';
 import { AuthContextProvider } from '@/contexts/AuthenticationContext';
+import { PermissionContextProvider } from '@/contexts/PermissionContext';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -39,16 +40,28 @@ export default function RootLayout() {
 		<GeneralContextProvider>
 			<GestureHandlerRootView>
 				<AuthContextProvider>
-					<BottomSheetModalProvider>
-						<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-							<Stack>
-								<Stack.Screen 
-									name="index" 
-									options={{ headerShown: false }}
-								/>
-							</Stack>
-						</ThemeProvider>
-					</BottomSheetModalProvider>
+					<PermissionContextProvider>	
+						<BottomSheetModalProvider>
+							<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+								<Stack>
+									<Stack.Screen 
+										name='(protected)'
+										options={{
+											headerShown: false,
+											animation: 'none'
+										}}
+									/>
+									<Stack.Screen 
+										name='index'
+										options={{
+											headerShown: false,
+											animation: 'none'
+										}}
+									/>
+								</Stack>
+							</ThemeProvider>
+						</BottomSheetModalProvider>
+					</PermissionContextProvider>
 				</AuthContextProvider>
 			</GestureHandlerRootView>
 		</GeneralContextProvider>

@@ -1,15 +1,17 @@
 import { useAuthContext } from '@/contexts/AuthenticationContext';
-import useAuthenticationHook from '@/hooks/useAuthenticationHook';
 import { AppleAuthenticationCredential } from 'expo-apple-authentication';
 import { Redirect, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { Text, TouchableOpacity, View } from 'react-native'
+import * as Haptics from 'expo-haptics';
 
 export default function index() {
 
     const navigation = useNavigation();
     const authContext = useAuthContext();
+    const router = useRouter();
     
+
     // Set the header to be hidden
     useEffect(() => {
         navigation.setOptions({
@@ -19,16 +21,17 @@ export default function index() {
 
     //
     const accountLogin = async () => {
-        const res: AppleAuthenticationCredential|undefined = await authContext?.signInWithApple();
-        console.log(res);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        await authContext.signInWithApple();
     }
 
     //
     const accountRegister = () => {
+        router.push('/(onboard)/grantCameraAccess');
     }
 
     //  check if the user is logged in
-    if (authContext?.userId) {
+    if (authContext.userId) {
         return <Redirect href="/(protected)/(tabs)/(home)/home" />
     }
 

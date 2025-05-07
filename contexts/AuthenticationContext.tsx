@@ -1,31 +1,67 @@
-import { AuthReducer } from "@/store/AuthReducer";
-import React, {createContext, useContext, useEffect, useRef} from "react";
-import { AppState, Platform } from "react-native";
+import React, {createContext, useContext, useEffect, useState} from "react";
 import * as AppleAuthentication from 'expo-apple-authentication';
-import SessionStorage from 'react-native-session-storage';
 import { useRouter } from "expo-router";
+import useAsyncStorageHook from "@/hooks/useAsyncStorageHook";
 
 export type AuthContextType = {
     userId: string|null;
     identityToken: string|null;
     authorizationCode: string|null;
-    setAuthState: (stateName: string, state: string|null) => void;
-    signInWithApple: () => Promise<AppleAuthentication.AppleAuthenticationCredential>;
+    signInWithApple: () => Promise<void>;
     signOutWithApple: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType|undefined>(undefined);
+export interface authCredential {
+    userId: string|null;
+    identityToken: string|null;
+    authorizationCode: string|null;
+}
+
+const AuthContext = createContext<AuthContextType>({
+    userId: null,
+    identityToken: null,
+    authorizationCode: null,
+    signInWithApple: async () => {
+        throw new Error('signInWithApple not implemented');
+    },
+    signOutWithApple: async () => {
+        throw new Error('signOutWithApple not implemented');
+    }
+});
+
+const AuthStorageKey = '@authStorageKey';
 
 const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
 
-    const reducer = AuthReducer();
-    const [initialState, dispatch] = reducer.useAuthReducer;
-    
-    const setAuthState = (stateName: string, state: string|null) => dispatch({stateName: stateName, payload: state});
+    //  local state
+    const [userId, setUserId] = useState<string|null>(null);
+    const [identityToken, setIdentityToken] = useState<string|null>(null);
+    const [authorizationCode, setAuthorizationCode] = useState<string|null>(null);
 
+    //  router
+    const router = useRouter();
+
+    //  storage
+    const {storeDataIntoStorage, removeDataFromStorage, getDataFromStorage} = useAsyncStorageHook();
+
+    //  listen to the state
     useEffect(() => {
-
         console.log('AuthContextProvider mounted');
+
+        //  get the auth credentials from the storage
+        const getAuthCredFromStorage = async () => {
+            try {
+                const res = await getDataFromStorage<authCredential>(AuthStorageKey);
+                if (res) {
+                    setUserId(res.userId);
+                    setIdentityToken(res.identityToken);
+                    setAuthorizationCode(res.authorizationCode);
+                }
+            } catch (error) {
+                console.log(error);
+            }
+        }
+        getAuthCredFromStorage();
 
         return () => {
             console.log('AuthContextProvider unmounted');
@@ -64,14 +100,20 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
             //  check if the credential state is authorized
             if (credState !== AppleAuthentication.AppleAuthenticationCredentialState.AUTHORIZED) throw new Error('Apple sign in is not authorized');
             
-            //  store the user in the local storage
-            SessionStorage.setItem(userId, JSON.stringify(credential));
-
             //  set the user in the auth context
-            setAuthState('userId', userId);
+            setUserId(userId);
+            setIdentityToken(credential.identityToken);
+            setAuthorizationCode(credential.authorizationCode);
+
+            //  store the user in the local storage
+            await storeDataIntoStorage<authCredential>(AuthStorageKey, {
+                userId: userId,
+                identityToken: credential.identityToken,
+                authorizationCode: credential.authorizationCode,
+            } as authCredential);
 
             //  if the credential state is authorized, return the credential
-            return credential;
+            router.replace('/(protected)/(tabs)/(home)/home');
 
         } catch (error) {
             throw error;
@@ -85,22 +127,31 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
      */
     async function signOutWithApple()
     {
-        if (!initialState.userId) return;
+        try {
+            //  remove the user from the local storage
+            await removeDataFromStorage(AuthStorageKey);
+        } 
+        catch (error) {
 
-        //  get the user id from the auth context
-        const userId = initialState.userId;
+            console.log(error);
 
-        //  remove the user from the local storage
-        SessionStorage.removeItem(userId);
-
-        //  set the user in the auth context
-        setAuthState('userId', null);
+        } finally {
+            
+            //  set the user in the auth context
+            setUserId(null);
+            setIdentityToken(null);
+            setAuthorizationCode(null);
+            
+            //  redirect to the login page
+            router.replace('/');
+        }
     }
 
     return (
         <AuthContext.Provider value={{
-            ...initialState,
-            setAuthState,
+            userId,
+            identityToken,
+            authorizationCode,
             signInWithApple,
             signOutWithApple
         }}>

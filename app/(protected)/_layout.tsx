@@ -11,6 +11,11 @@ export default function _layout() {
     useEffect(() => {
         navigation.setOptions({ headerShown: false });
     }, [navigation]);
+
+    // Check if the user is logged in
+    if (!authContext.userId) {
+        return <Redirect href="/" />
+    }
     
     return (
         <CameraContextProvider>

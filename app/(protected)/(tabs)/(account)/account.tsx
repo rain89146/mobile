@@ -26,8 +26,7 @@ export default function account() {
 
 	const signOut = async () => {
 		await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-		await authContext?.signOutWithApple();
-		router.replace('/');
+		await authContext.signOutWithApple();
 	}
   
 	return (

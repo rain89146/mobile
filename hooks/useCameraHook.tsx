@@ -421,7 +421,7 @@ export function useCameraHook(ref: RefObject<CameraView>) {
                 cameraContext?.setPhotoUri(photo.uri);
 
                 //
-                router.replace('/(camera)/cameraPreview');
+                router.replace('/(protected)/(camera)/cameraPreview');
             }
             
         } catch (error) {
@@ -488,7 +488,7 @@ export function useCameraHook(ref: RefObject<CameraView>) {
                     if (isExternalUrl) 
                     {
                         //  go to the external link
-                        router.push({ pathname: "/(modals)/externalRedirect", params: { destination: data } });
+                        router.push({ pathname: "/(protected)/(modals)/externalRedirect", params: { destination: data } });
                     }
                     else 
                     {
