@@ -2,7 +2,6 @@ import { Link } from 'expo-router';
 import { openBrowserAsync } from 'expo-web-browser';
 import { type ComponentProps } from 'react';
 import { GestureResponderEvent, Platform } from 'react-native';
-import * as Linking from 'expo-linking';
 
 type Props = Omit<ComponentProps<typeof Link>, 'href'> & { href: string };
 

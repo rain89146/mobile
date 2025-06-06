@@ -2,8 +2,11 @@ import { useAuthContext } from '@/contexts/AuthenticationContext';
 import { AppleAuthenticationCredential } from 'expo-apple-authentication';
 import { Redirect, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
-import { Text, TouchableOpacity, View } from 'react-native'
+import { SafeAreaView, Text, TouchableOpacity, View } from 'react-native'
 import * as Haptics from 'expo-haptics';
+import { ActionButton, SecondaryButton } from '@/components/ui/ActionButtons';
+import { PlaidAuthButton } from '@/lib/plaid/PlaidAuthButtons';
+import { usePlaidEmitter } from 'react-native-plaid-link-sdk';
 
 export default function index() {
 
@@ -27,6 +30,10 @@ export default function index() {
 
     //
     const accountRegister = () => {
+        router.push('/(signup)/accountRegister');
+    }
+
+    const accountOnBoard = () => {
         router.push('/(onboard)/grantCameraAccess');
     }
 
@@ -36,19 +43,33 @@ export default function index() {
     }
 
     return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-            <Text>index</Text>
+        <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
             <View style={{
-                paddingTop: 20,
-                paddingBottom: 20,
+                flex: 1,
+                width: '100%',
+                height: '100%',
             }}>
-                <TouchableOpacity onPress={() => accountLogin()}>
-                    <Text>Go to Home</Text>
-                </TouchableOpacity>
+                <View style={{
+                    marginTop: 'auto',
+                    padding: 35
+                }}>
+                    <PlaidAuthButton />
+                    <ActionButton
+                        onPressEvent={() => router.push('/(signup)/accountRegister')}
+                        isLoading={false}
+                        buttonLabel="Create new account"
+                    />
+                    <View style={{
+                        paddingTop: 20,
+                    }}>
+                        <SecondaryButton 
+                            onPressEvent={() => router.push('/(login)/login')}
+                            isLoading={false}
+                            buttonLabel="Login"
+                        />
+                    </View>
+                </View>
             </View>
-            <TouchableOpacity onPress={() => accountRegister()}>
-                <Text>Go to Register</Text>
-            </TouchableOpacity>
-        </View>
+        </SafeAreaView>
     )
 }

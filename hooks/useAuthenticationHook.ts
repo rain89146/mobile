@@ -5,11 +5,7 @@ import { AuthContextType, useAuthContext } from '@/contexts/AuthenticationContex
 
 export default function useAuthenticationHook() 
 {
-    const authContext = useAuthContext();
-    const {
-        userId,
-        setAuthState,
-    }: AuthContextType  = authContext!;
+    const { userId }  = useAuthContext();
 
     async function signInWithApple()
     {
@@ -41,9 +37,6 @@ export default function useAuthenticationHook()
             //  store the user in the local storage
             SessionStorage.setItem(userId, JSON.stringify(credential));
 
-            //  set the user in the auth context
-            setAuthState('userId', userId);
-
             //  if the credential state is authorized, return the credential
             return credential;
 
@@ -73,9 +66,14 @@ export default function useAuthenticationHook()
 
             //  remove the user from the local storage
             SessionStorage.removeItem(userId);
+        }
+    }
 
-            //  set the user in the auth context
-            setAuthState('userId', null);
+    async function signInWithEmail(login: string, password: string)
+    {
+        try {
+        } catch (error) {
+            throw error;
         }
     }
 

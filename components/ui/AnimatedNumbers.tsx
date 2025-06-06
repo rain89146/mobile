@@ -1,6 +1,5 @@
 import { AnimatedRollingNumber, AnimatedRollingNumberProps } from "react-native-animated-rolling-numbers";
-import { Easing } from "react-native-reanimated";
-import { View, StyleSheet, Button, StyleProp, TextStyle } from "react-native";
+import { StyleProp, TextStyle } from "react-native";
 
 export function AnimatedNumbers({
     value, 

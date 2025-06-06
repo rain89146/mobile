@@ -13,9 +13,13 @@ import { GeneralContextProvider } from '@/contexts/GeneralContext';
 import Toast from 'react-native-toast-message';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'
-import { CameraContextProvider } from '@/contexts/CameraContext';
 import { AuthContextProvider } from '@/contexts/AuthenticationContext';
 import { PermissionContextProvider } from '@/contexts/PermissionContext';
+
+import * as eva from '@eva-design/eva';
+import { ApplicationProvider} from '@ui-kitten/components';
+import { NetworkContextProvider } from '@/contexts/NetworkContext';
+
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -37,33 +41,37 @@ export default function RootLayout() {
   }
 
 	return (
-		<GeneralContextProvider>
-			<GestureHandlerRootView>
-				<AuthContextProvider>
-					<PermissionContextProvider>	
-						<BottomSheetModalProvider>
-							<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-								<Stack>
-									<Stack.Screen 
-										name='(protected)'
-										options={{
-											headerShown: false,
-											animation: 'none'
-										}}
-									/>
-									<Stack.Screen 
-										name='index'
-										options={{
-											headerShown: false,
-											animation: 'none'
-										}}
-									/>
-								</Stack>
-							</ThemeProvider>
-						</BottomSheetModalProvider>
-					</PermissionContextProvider>
-				</AuthContextProvider>
-			</GestureHandlerRootView>
-		</GeneralContextProvider>
+		<ApplicationProvider {...eva} theme={eva.light}>
+			<NetworkContextProvider>
+				<GeneralContextProvider>
+					<GestureHandlerRootView>
+						<AuthContextProvider>
+							<PermissionContextProvider>	
+								<BottomSheetModalProvider>
+									<ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+										<Stack>
+											<Stack.Screen 
+												name='(protected)'
+												options={{
+													headerShown: false,
+													animation: 'none'
+												}}
+											/>
+											<Stack.Screen 
+												name='index'
+												options={{
+													headerShown: false,
+													animation: 'none'
+												}}
+											/>
+										</Stack>
+									</ThemeProvider>
+								</BottomSheetModalProvider>
+							</PermissionContextProvider>
+						</AuthContextProvider>
+					</GestureHandlerRootView>
+				</GeneralContextProvider>
+			</NetworkContextProvider>
+		</ApplicationProvider>
 	);
 }

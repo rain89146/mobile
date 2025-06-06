@@ -1,7 +1,6 @@
 import React from 'react'
 import { Canvas, DiffRect, rect, rrect } from "@shopify/react-native-skia";
 import { Dimensions, Platform, StyleSheet } from "react-native";
-import { View, Text } from 'react-native'
 
 export default function CameraScannerOverlay({isScanning}: {isScanning: boolean}) {
 

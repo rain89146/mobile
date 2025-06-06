@@ -1,5 +1,4 @@
 import { useAuthContext } from '@/contexts/AuthenticationContext';
-import { CameraContextProvider } from '@/contexts/CameraContext'
 import { NotificationContextProvider } from '@/contexts/NotificationContext';
 import { Redirect, Stack, useNavigation } from 'expo-router'
 import React, { useEffect } from 'react'
@@ -20,10 +19,8 @@ export default function _layout() {
     
     return (
         <NotificationContextProvider>
-            <CameraContextProvider>
-                <Stack />
-                <Toast />
-            </CameraContextProvider>
+            <Stack />
+            <Toast />
         </NotificationContextProvider>
     )
 }

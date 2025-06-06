@@ -5,7 +5,10 @@ export type CameraContextType = {
     setPhotoUri: (uri: string | null) => void;
 }
 
-const CameraContext = createContext<CameraContextType|undefined>(undefined);
+const CameraContext = createContext<CameraContextType>({
+    photoUri: null,
+    setPhotoUri: () => {},
+});
 
 const CameraContextProvider = ({children}: {children: React.ReactNode}) => {
 

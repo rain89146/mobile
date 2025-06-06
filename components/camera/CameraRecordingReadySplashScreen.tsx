@@ -1,6 +1,5 @@
 import React, {useEffect} from 'react'
 import { View, Text } from 'react-native';
-import * as Haptics from 'expo-haptics';
 import useAlertSoundHook from '@/hooks/useAlertSoundHook';
 
 export default function CameraRecordingReadySplashScreen({preparingForRecording}: {preparingForRecording: boolean}) {

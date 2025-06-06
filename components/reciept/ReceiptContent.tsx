@@ -104,7 +104,7 @@ function ReceiptActions({
                         fontWeight: 'normal',
                         paddingTop: 10,
                     }}
-                >By clicking on "Looks good to me", you are confirming that the receipt is correct and ready for processing.</Text>
+                >By clicking on &quot;Looks good to me&quot;, you are confirming that the receipt is correct and ready for processing.</Text>
             </View>
             <View style={{
                 paddingTop: 20,
@@ -119,7 +119,7 @@ function ReceiptActions({
                         fontWeight: 'normal',
                     }}
                 >
-                    Don't like this receipt? Let's take another one!
+                    Don&apos;t like this receipt? Let&apos;s take another one!
                 </Text>
                 <TouchableOpacity
                     onPress={() => retakeReceipt()}
