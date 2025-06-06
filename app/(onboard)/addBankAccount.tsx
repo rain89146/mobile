@@ -1,27 +1,21 @@
 import { useOnBoardingContext } from '@/contexts/OnBoardingContext';
-import { PlaidAuthButton } from '@/lib/plaid/PlaidAuthButtons';
-import { useNavigation, useRouter } from 'expo-router';
+import { useNavigation } from 'expo-router';
 import React, { useEffect } from 'react'
-import { View, Text, Linking } from 'react-native'
+import { View, Text } from 'react-native'
 
-export default function addBankAccount() 
+export default function AddBankAccount() 
 {
     const {
         onBoardingProgress,
-        updateOnBoardingProgress,
     } = useOnBoardingContext();
-    
+    console.log(onBoardingProgress)
     const navigation = useNavigation();
-    const router = useRouter();
 
     useEffect(() => {
         navigation.setOptions({ 
             headerShown: false,
         });
-        console.log({
-            onBoardingProgress
-        })
-    }, []);
+    }, [navigation]);
     
     return (
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>

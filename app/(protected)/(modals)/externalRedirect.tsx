@@ -1,10 +1,9 @@
-import {useEffect} from 'react'
-import { useLocalSearchParams, useNavigation, Link } from 'expo-router';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, {useEffect} from 'react'
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { View, Text, TouchableOpacity, Linking } from 'react-native';
 import Octicons from '@expo/vector-icons/Octicons';
-import { Linking } from 'react-native'
 
-export default function modal() {
+export default function Modal() {
 
     const navigation = useNavigation();
     const {destination} = useLocalSearchParams();

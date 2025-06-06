@@ -1,8 +1,8 @@
 import { CameraContextProvider } from '@/contexts/CameraContext'
 import { Stack, useNavigation } from 'expo-router'
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
-export default function _layout() {
+export default function Layout() {
     const navigation = useNavigation();
 
     useEffect(() => {

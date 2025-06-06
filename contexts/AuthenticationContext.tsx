@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useEffect, useState} from "react";
+import React, {createContext, useCallback, useContext, useEffect, useState} from "react";
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from "expo-router";
 import useAsyncStorageHook from "@/hooks/useAsyncStorageHook";
@@ -70,29 +70,30 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
     //  storage
     const {storeDataIntoStorage, removeDataFromStorage, getDataFromStorage} = useAsyncStorageHook();
 
+    //  get the auth credentials from the storage
+    const getAuthCredFromStorage = useCallback(async () => {
+        try {
+            const res = await getDataFromStorage<authCredential>(SessionKeys.AUTH_STORAGE_KEY);
+            if (res) {
+                setUserId(res.userId);
+                setIdentityToken(res.identityToken);
+                setAuthorizationCode(res.authorizationCode);
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }, [getDataFromStorage]);
+
     //  listen to the state
     useEffect(() => {
         console.log('AuthContextProvider mounted');
 
-        //  get the auth credentials from the storage
-        const getAuthCredFromStorage = async () => {
-            try {
-                const res = await getDataFromStorage<authCredential>(SessionKeys.AUTH_STORAGE_KEY);
-                if (res) {
-                    setUserId(res.userId);
-                    setIdentityToken(res.identityToken);
-                    setAuthorizationCode(res.authorizationCode);
-                }
-            } catch (error) {
-                console.log(error);
-            }
-        }
         getAuthCredFromStorage();
 
         return () => {
             console.log('AuthContextProvider unmounted');
         }
-    }, []);
+    }, [getAuthCredFromStorage]);
 
     /**
      * Sign in with Apple
@@ -246,7 +247,7 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
             const apiRequest: Promise<ApiResponse<authCredential>> = new Promise((resolve, reject) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: {
@@ -263,7 +264,7 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
             const response = await apiRequest;
 
             //  check if the response is successful
-            if (!response.result) throw new Error(response.message);
+            if (!response.status) throw new Error(response.message);
             if (!response.response) throw new Error('Unable to sign in with email');
 
             //  store the user in the auth context
@@ -300,7 +301,7 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
             const apiRequest: Promise<ApiResponse<boolean>> = new Promise((resolve, reject) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: true,
@@ -331,7 +332,7 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
             const apiRequest: Promise<ApiResponse<boolean>> = new Promise((resolve, reject) => {
                 setTimeout(() => {
                     resolve({
-                        result: (code === '123456'),
+                        status: (code === '123456'),
                         message: (code === '123456') ? '' : 'Invalid code',
                         exception: (code === '123456') ? '' : 'InvalidVerificationCodeException',
                         response: (code === '123456'),
@@ -362,7 +363,7 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
             const apiRequest: Promise<ApiResponse<boolean>> = new Promise((resolve, reject) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: true,

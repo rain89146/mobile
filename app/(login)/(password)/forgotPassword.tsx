@@ -6,7 +6,7 @@ import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
 import { useNavigation, useRouter } from 'expo-router';
 import React from 'react'
-import { View, Text, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native'
+import { View, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native'
 
 class EmailError extends Error {
     constructor(message: string) {
@@ -15,7 +15,7 @@ class EmailError extends Error {
     }
 }
 
-export default function forgotPassword() {
+export default function ForgotPassword() {
     const navigation = useNavigation();
     const authContext = useAuthContext();
     const router = useRouter();
@@ -26,7 +26,7 @@ export default function forgotPassword() {
 
     React.useEffect(() => {
         navigation.setOptions({ headerShown: false })
-    }, [])
+    }, [navigation])
 
     /**
      * Handle the on blur event for the email input field
@@ -34,7 +34,8 @@ export default function forgotPassword() {
      */
     const onBlurEvent = (e: any) => {
         if (email) {
-            Helpers.validateEmail(email) ? setEmailError(null) : setEmailError('Invalid email address');
+            const err = Helpers.validateEmail(email) ? null : 'Invalid email address';
+            setEmailError(err);
         } else {
             setEmailError(null)
         }
@@ -53,7 +54,7 @@ export default function forgotPassword() {
             const apiResponse = await authContext.sendPasswordResetRequest(email);
 
             //  check if the response is successful
-            if (!apiResponse.result) throw new Error(apiResponse.message);
+            if (!apiResponse.status) throw new Error(apiResponse.message);
             if (!apiResponse.response) throw new Error('Unable to send password reset request');
 
             //  provide feedback to the user

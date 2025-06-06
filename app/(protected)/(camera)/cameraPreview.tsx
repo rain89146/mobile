@@ -1,5 +1,3 @@
-import { useNavigation, useRouter } from 'expo-router';
-import { useEffect, useRef, RefObject, useState, useCallback, Children } from 'react';
 import {View, Text, TouchableOpacity} from 'react-native'
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetScrollView, BottomSheetView } from '@gorhom/bottom-sheet';
@@ -7,17 +5,13 @@ import {ImageComp, NoImagePlaceholder} from '@/components/image/ImageComp';
 import useImageHook from '@/components/image/useImageHook';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as FileSystem from 'expo-file-system';
-import * as Haptics from 'expo-haptics';
 import { ReceiptContent } from '@/components/reciept/ReceiptContent';
-import { ReceiptData } from '@/types/ReceiptData';
-import useMediaLibraryHook from '@/hooks/useMediaLibraryHook';
 import { useCameraContext } from '@/contexts/CameraContext';
 import useReceiptHook from '@/hooks/useReceiptHook';
+import React, { useRef, RefObject} from 'react';
 
-export default function cameraPreview() {
+export default function CameraPreview() {
 
-    const navigation = useNavigation();
     const bottomSheetRef = useRef<BottomSheet>(null);
     const cameraContext = useCameraContext();
     const {photoUri: photo} = cameraContext!;
@@ -119,7 +113,6 @@ function ContentPreview({
         isProcessing,
         processResult,
         receiptData,
-        editReceipt,
         tryAgainHandle,
         cancelHandle,
         onSuccessHandle,

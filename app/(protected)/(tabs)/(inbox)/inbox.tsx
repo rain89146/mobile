@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { View, Text, Button } from 'react-native'
 import { useRouter } from 'expo-router';
 import { AnimatedNumbers } from '@/components/ui/AnimatedNumbers';
 
-export default function inbox() {
+export default function Inbox() {
 	const router = useRouter();
 	
 	return (

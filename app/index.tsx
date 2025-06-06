@@ -1,14 +1,11 @@
 import { useAuthContext } from '@/contexts/AuthenticationContext';
-import { AppleAuthenticationCredential } from 'expo-apple-authentication';
 import { Redirect, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
-import { SafeAreaView, Text, TouchableOpacity, View } from 'react-native'
-import * as Haptics from 'expo-haptics';
+import { SafeAreaView, View } from 'react-native'
 import { ActionButton, SecondaryButton } from '@/components/ui/ActionButtons';
 import { PlaidAuthButton } from '@/lib/plaid/PlaidAuthButtons';
-import { usePlaidEmitter } from 'react-native-plaid-link-sdk';
 
-export default function index() {
+export default function Index() {
 
     const navigation = useNavigation();
     const authContext = useAuthContext();
@@ -20,22 +17,7 @@ export default function index() {
         navigation.setOptions({
             headerShown: false,
         })
-    }, [])
-
-    //
-    const accountLogin = async () => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        await authContext.signInWithApple();
-    }
-
-    //
-    const accountRegister = () => {
-        router.push('/(signup)/accountRegister');
-    }
-
-    const accountOnBoard = () => {
-        router.push('/(onboard)/grantCameraAccess');
-    }
+    }, [navigation])
 
     //  check if the user is logged in
     if (authContext.userId) {

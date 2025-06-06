@@ -1,7 +1,6 @@
 import { RegInputKitty } from '@/components/form/input/InputKitty';
 import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
-import { useAuthContext } from '@/contexts/AuthenticationContext';
 import { useSignupContext } from '@/contexts/SignupContext';
 import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
@@ -30,7 +29,7 @@ class RecordIdError extends Error {
     }
 }
 
-export default function addPersonalInfo() {
+export default function AddPersonalInfo() {
 
     const signupContext = useSignupContext();
     const navigation = useNavigation();
@@ -45,7 +44,7 @@ export default function addPersonalInfo() {
     // set the header to false
     React.useEffect(() => {
         navigation.setOptions({ headerShown: false })
-    }, [])
+    }, [navigation])
 
     /**
      * Submit personal information
@@ -73,7 +72,7 @@ export default function addPersonalInfo() {
             const response = await signupContext.storePersonalInformation(signupContext.signUpPayload.recordId as string, firstName, lastName);
 
             //  check if response is successful
-            if (!response.result) throw new Error(response.message);
+            if (!response.status) throw new Error(response.message);
 
             //  check if response is successful
             if (!response.response) throw new Error('Unable to store personal information');
@@ -118,7 +117,8 @@ export default function addPersonalInfo() {
         if (target === 'firstName') 
         {
             if (firstName) {
-                Helpers.validatePersonName(firstName) ? setFirstNameError(null) : setFirstNameError('Invalid first name');
+                const err = Helpers.validatePersonName(firstName) ? null : 'Invalid first name';
+                setFirstNameError(err);
             } else {
                 setFirstNameError(null)
             }
@@ -126,7 +126,8 @@ export default function addPersonalInfo() {
         else if (target === 'lastName') 
         {
             if (lastName) {
-                Helpers.validatePersonName(lastName) ? setLastNameError(null) : setLastNameError('Invalid last name');
+                const err = Helpers.validatePersonName(lastName) ? null : 'Invalid last name';
+                setLastNameError(err);
             } else {
                 setLastNameError(null)
             }

@@ -4,9 +4,8 @@ import { View, Text, Button, TouchableOpacity } from 'react-native'
 import { Link, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import { useAuthContext } from '@/contexts/AuthenticationContext';
-import { NavigationOptions } from 'expo-router/build/global-state/routing';
 
-export default function account() {
+export default function Account() {
 
 	const {showToast, hideToast} = useToastHook();
 	const router = useRouter();

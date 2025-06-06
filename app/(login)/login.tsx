@@ -1,10 +1,10 @@
 import { PassInputKitty, RegInputKitty } from '@/components/form/input/InputKitty';
-import { ActionButton, AppleButton, BackButton, CloseButton } from '@/components/ui/ActionButtons';
+import { ActionButton, AppleButton, BackButton } from '@/components/ui/ActionButtons';
 import { DividerLineWithText, TitleAndRemark } from '@/components/ui/ContentComp';
 import { useAuthContext } from '@/contexts/AuthenticationContext';
 import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
-import { useNavigation, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React from 'react'
 import { View, Text, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 
@@ -24,9 +24,8 @@ class PasswordError extends Error {
 
 const MAX_PASSWORD_ATTEMPTS = 3;
 
-export default function login() {
+export default function Login() {
 
-    const navigation = useNavigation();
     const authContext = useAuthContext();
     const router = useRouter();
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
@@ -113,7 +112,8 @@ export default function login() {
      */
     const onBlurEvent = (e: any) => {
         if (email) {
-            Helpers.validateEmail(email) ? setEmailError(null) : setEmailError('Invalid email address');
+            const err = Helpers.validateEmail(email) ? null : 'Invalid email address';
+            setEmailError(err);
         } else {
             setEmailError(null)
         }

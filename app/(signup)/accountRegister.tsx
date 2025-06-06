@@ -17,7 +17,7 @@ class EmailError extends Error {
     }
 }
 
-export default function accountRegister() 
+export default function AccountRegister() 
 {
     //  hooks
     const signupContext = useSignupContext();
@@ -31,7 +31,7 @@ export default function accountRegister()
     //  set the header to false
     React.useEffect(() => {
         navigation.setOptions({ headerShown: false })
-    }, [])
+    }, [navigation])
 
     /**
      * Sign up with email
@@ -50,7 +50,7 @@ export default function accountRegister()
             const recordResponse = await signupContext.generateSignUpRecord(email);
 
             //  when response is not successful
-            if (!recordResponse.result) throw new Error(recordResponse.message);
+            if (!recordResponse.status) throw new Error(recordResponse.message);
             if (!recordResponse.response) throw new Error('Unable to generate record id');
 
             // get record id
@@ -60,7 +60,7 @@ export default function accountRegister()
             const response = await signupContext.sendVerificationCode(email);
 
             //  check if response is successful
-            if (!response.result) throw new Error(response.message);
+            if (!response.status) throw new Error(response.message);
 
             //  set email in signup context
             signupContext.setSignUpPayload({...signupContext.signUpPayload, email, recordId });
@@ -100,7 +100,8 @@ export default function accountRegister()
      */
     const onBlurEvent = (e: any) => {
         if (email) {
-            Helpers.validateEmail(email) ? setEmailError(null) : setEmailError('Invalid email address');
+            const err = Helpers.validateEmail(email) ? null : 'Invalid email address';
+            setEmailError(err)
         } else {
             setEmailError(null)
         }
@@ -147,7 +148,7 @@ export default function accountRegister()
                                 />
                             </View>
                             <View style={{ marginBottom: 20 }}>
-                                <SubContentComp>By clicking on Agree and Continue, I agree to Dopamine's <ExternalLink href="https://google.com"><ThemedText type="link">Terms of Service</ThemedText></ExternalLink>, <ExternalLink href='https://pornhub.com'><ThemedText type="link">Payments Terms of Service</ThemedText></ExternalLink> and <ExternalLink href='https://qa.rewards.boydgaming.com'><ThemedText type='link'>Non-discrimination Policy</ThemedText></ExternalLink> and acknowledge the Privacy Policy.</SubContentComp>
+                                <SubContentComp>By clicking on Agree and Continue, I agree to Dopamine&lsquo;s <ExternalLink href="https://google.com"><ThemedText type="link">Terms of Service</ThemedText></ExternalLink>, <ExternalLink href='https://pornhub.com'><ThemedText type="link">Payments Terms of Service</ThemedText></ExternalLink> and <ExternalLink href='https://qa.rewards.boydgaming.com'><ThemedText type='link'>Non-discrimination Policy</ThemedText></ExternalLink> and acknowledge the Privacy Policy.</SubContentComp>
                             </View>
                             <View>
                                 <ActionButton 

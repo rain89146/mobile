@@ -1,5 +1,5 @@
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { ApiResponse } from "@/types/ApiResponse";
-import { createContext, useContext, useEffect, useState } from "react";
 import { authCredential } from "./AuthenticationContext";
 
 export interface SignupPayload {
@@ -27,7 +27,7 @@ export const context = createContext<SignupContextType>({
     setSignUpPayload: () => {},
     sendVerificationCode: async () => {
         return {
-            result: false,
+            status: false,
             message: '',
             exception: '',
             response: false
@@ -35,7 +35,7 @@ export const context = createContext<SignupContextType>({
     },
     verifyConfirmationCode: async () => {
         return {
-            result: false,
+            status: false,
             message: '',
             exception: '',
             response: false
@@ -43,7 +43,7 @@ export const context = createContext<SignupContextType>({
     },
     storePersonalInformation: async () => {
         return {
-            result: false,
+            status: false,
             message: '',
             exception: '',
             response: false
@@ -51,7 +51,7 @@ export const context = createContext<SignupContextType>({
     },
     generateSignUpRecord: async () => {
         return {
-            result: false,
+            status: false,
             message: '',
             exception: '',
             response: ''
@@ -59,7 +59,7 @@ export const context = createContext<SignupContextType>({
     },
     createAccount: async () => {
         return {
-            result: false,
+            status: false,
             message: '',
             exception: '',
             response: false
@@ -67,7 +67,7 @@ export const context = createContext<SignupContextType>({
     },
     loginWithRecordId: async () => {
         return {
-            result: false,
+            status: false,
             message: '',
             exception: '',
             response: {
@@ -107,7 +107,7 @@ export const SignupContextProvider = ({children}: {children: React.ReactNode}) =
             const apiRequest: Promise<ApiResponse<string>> = new Promise((resolve) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: '123456'
@@ -134,7 +134,7 @@ export const SignupContextProvider = ({children}: {children: React.ReactNode}) =
             const apiRequest: Promise<ApiResponse<boolean>> = new Promise((resolve) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: true
@@ -161,7 +161,7 @@ export const SignupContextProvider = ({children}: {children: React.ReactNode}) =
             const apiRequest: Promise<ApiResponse<boolean>> = new Promise((resolve) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: (code === '123456')
@@ -188,7 +188,7 @@ export const SignupContextProvider = ({children}: {children: React.ReactNode}) =
             const apiRequest: Promise<ApiResponse<boolean>> = new Promise((resolve) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: true
@@ -216,7 +216,7 @@ export const SignupContextProvider = ({children}: {children: React.ReactNode}) =
             const apiRequest: Promise<ApiResponse<boolean>> = new Promise((resolve) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: true
@@ -240,7 +240,7 @@ export const SignupContextProvider = ({children}: {children: React.ReactNode}) =
             const apiRequest: Promise<ApiResponse<authCredential>> = new Promise((resolve) => {
                 setTimeout(() => {
                     resolve({
-                        result: true,
+                        status: true,
                         message: '',
                         exception: '',
                         response: {

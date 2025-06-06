@@ -1,5 +1,5 @@
 import { RegInputKitty } from '@/components/form/input/InputKitty';
-import { ActionBetaButton, ActionButton, BackButton } from '@/components/ui/ActionButtons';
+import { ActionBetaButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
 import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
@@ -21,7 +21,7 @@ class InvalidVerificationCode extends Error {
 // 30 seconds
 const resendTime = 30 * 1000;
 
-export default function emailConfirmation() {
+export default function EmailConfirmation() {
 
     //  hooks
     const authContext = useAuthContext();
@@ -55,7 +55,7 @@ export default function emailConfirmation() {
             setCanResend(false);
             setResendTimer(resendTime);
         }
-    }, [])
+    }, [navigation])
 
     //  start the initial countdown for 30 seconds
     useEffect(() => {
@@ -95,7 +95,7 @@ export default function emailConfirmation() {
             const apiResponse = await authContext.verifyPasswordResetCode(verificationCode);
 
             //  when unable to verify the verification code, we will show an error message
-            if (!apiResponse.result) throw new InvalidVerificationCode(apiResponse.message);
+            if (!apiResponse.status) throw new InvalidVerificationCode(apiResponse.message);
 
             //  check if the verification code is valid
             if (!apiResponse.response) throw new InvalidVerificationCode();
@@ -149,7 +149,7 @@ export default function emailConfirmation() {
             const apiResponse = await authContext.sendPasswordResetRequest(email as string);
 
             //  when unable to send the verification code, we will show an error message
-            if (!apiResponse.result) throw new Error('Failed to send verification code');
+            if (!apiResponse.status) throw new Error('Failed to send verification code');
 
             //  after the code is sent, we will start the countdown for 30 seconds
             //  within the 30 seconds, the user will not be able to click on the resend button
@@ -204,9 +204,8 @@ export default function emailConfirmation() {
                 return;
             }
 
-            Helpers.validateNumber(verificationCode) 
-            ? setVerificationCodeError(null) 
-            : setVerificationCodeError('Invalid format of verification code');
+            const err = Helpers.validateNumber(verificationCode) ? null : 'Invalid format of verification code';
+            setVerificationCodeError(err);
         }
         else 
         {
