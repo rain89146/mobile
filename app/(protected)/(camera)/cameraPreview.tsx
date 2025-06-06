@@ -17,8 +17,8 @@ import useReceiptHook from '@/hooks/useReceiptHook';
 
 export default function cameraPreview() {
 
-    const bottomSheetRef: RefObject<BottomSheetMethods> = useRef<BottomSheet>(null);
     const navigation = useNavigation();
+    const bottomSheetRef = useRef<BottomSheet>(null);
     const cameraContext = useCameraContext();
     const {photoUri: photo} = cameraContext!;
 
@@ -30,12 +30,6 @@ export default function cameraPreview() {
         setLoadingProgress,
         setPhotoProp,
     } = useImageHook();
-
-    useEffect(() => {
-        navigation.setOptions({ 
-            headerShown: false,
-        });
-    }, [navigation]);
 
     //  bottom sheet backdrop
     const bottomSheetBackdrop = (props: any) => {
@@ -99,7 +93,7 @@ export default function cameraPreview() {
                             imageError={imageError}
                             photoContent={photo as string}
                             imageLoading={isLoading}
-                            bottomSheetRef={bottomSheetRef}
+                            bottomSheetRef={bottomSheetRef as RefObject<BottomSheetMethods>}
                         />
                     </BottomSheetScrollView>
                 </BottomSheetView>

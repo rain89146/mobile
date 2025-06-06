@@ -1,5 +1,5 @@
 import { ImageProps } from 'expo-image';
-import React, {useState} from 'react'
+import {useState} from 'react'
 
 export default function useImageHook() {
 

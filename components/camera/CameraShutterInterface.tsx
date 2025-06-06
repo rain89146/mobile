@@ -1,5 +1,4 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { View, TouchableOpacity, GestureResponderEvent } from "react-native";
 
 export default function CameraShutterInterface ({

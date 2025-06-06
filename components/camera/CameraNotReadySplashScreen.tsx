@@ -1,8 +1,8 @@
 import {Text, View, TouchableOpacity} from 'react-native'
 import CameraScreenOuterLayer from './CameraScreenOuterLayer'
 
-export default function CameraNotReadySplashScreen({cameraReady, goBack}: {cameraReady: boolean, goBack: () => void}) {
-  return !cameraReady && (
+export default function CameraNotReadySplashScreen({goBack}: {goBack: () => void}) {
+  return (
     <CameraScreenOuterLayer>
         <Text style={{
             color: '#000',

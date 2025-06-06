@@ -4,6 +4,7 @@ import * as Notifications from 'expo-notifications';
 import { usePermissionContext } from "./PermissionContext";
 import Constants from 'expo-constants';
 import useAsyncStorageHook from "@/hooks/useAsyncStorageHook";
+import { SessionKeys } from "@/constants/SessionKeys";
 
 export type NotificationContextType = {
     expoPushToken: string|null;
@@ -17,8 +18,6 @@ const NotificationContext = createContext<NotificationContextType>({
     sendNotification: async () => null
 });
 
-const NOTIFICATION_KEY = "@notificationKey";
-
 const NotificationContextProvider = ({children}: {children: React.ReactNode}) => {
     
     //  get the permission context
@@ -30,8 +29,8 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
     //  local notification state
     const [expoPushToken, setExpoPushToken] = useState<string|null>(null);
     const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
-    const notificationListener = useRef<Notifications.EventSubscription>();
-    const responseListener = useRef<Notifications.EventSubscription>();
+    const notificationListener = useRef<Notifications.EventSubscription>(null);
+    const responseListener = useRef<Notifications.EventSubscription>(null);
     
     // 
     useEffect(() => {
@@ -60,11 +59,11 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
 
             // Clean up the notification listeners
             notificationListener.current &&
-                Notifications.removeNotificationSubscription(notificationListener.current);
+                notificationListener.current.remove();
 
             // Clean up the response listeners
             responseListener.current &&
-                Notifications.removeNotificationSubscription(responseListener.current);
+                responseListener.current.remove();
         };
     }, []);
 
@@ -81,7 +80,7 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
             if (!allowNotificationsUse) await requestToEnableNotifications();
 
             //  check if the token is already stored
-            const storedToken = await getDataFromStorage<string>(NOTIFICATION_KEY);
+            const storedToken = await getDataFromStorage<string>(SessionKeys.NOTIFICATION_KEY);
 
             //  get project id
             const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
@@ -95,14 +94,13 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
             const token = notificationTokenObj.data;
 
             //  store the token in the storage
-            if (token && token !== storedToken) await storeDataIntoStorage<string>(NOTIFICATION_KEY, token);
+            if (token && token !== storedToken) await storeDataIntoStorage<string>(SessionKeys.NOTIFICATION_KEY, token);
             
             //  return the token
             return token;
 
         } catch (error) {
-            console.error('Error getting push token:', error);
-            return null;
+            throw error;
         }
     }
 

@@ -1,5 +1,6 @@
-import { View, Text, TouchableOpacity } from 'react-native';
 import CameraScreenOuterLayer from './CameraScreenOuterLayer';
+import { PermissionResponse } from 'expo-camera';
+import { PermissionContentComp } from './PermissionContentComp';
 
 export default function CameraPermissionSplashScreen({
     cameraPermission, 
@@ -8,13 +9,13 @@ export default function CameraPermissionSplashScreen({
 }: {
     goToSettings: () => void, 
     requestCameraPermission: () => void, 
-    cameraPermission: {granted: boolean, canAskAgain: boolean, status: string} | null
+    cameraPermission: PermissionResponse | null
 }) {
-
-    if (!cameraPermission) {
+    if (cameraPermission === null) 
+    {
         return (
             <CameraScreenOuterLayer>
-                <ContentLayer 
+                <PermissionContentComp 
                     remark='To use camera feature you need to grant the camera permission. Your permission to access camera is required.' 
                     onPressEvent={goToSettings} 
                     buttonTest='System setting' 
@@ -24,12 +25,14 @@ export default function CameraPermissionSplashScreen({
     }
 
     const { granted, canAskAgain } = cameraPermission;
+    console.log({ granted, canAskAgain })
 
     // open the settings page if the permission is denied and cannot ask again
-    if (granted === false && canAskAgain === false) {
+    if (granted === false && canAskAgain === false) 
+    {
         return (
             <CameraScreenOuterLayer>
-                <ContentLayer
+                <PermissionContentComp
                     remark='To use camera feature you need to grant the camera permission. Your permission to access camera is required.'
                     onPressEvent={goToSettings}
                     buttonTest='System setting'
@@ -41,47 +44,11 @@ export default function CameraPermissionSplashScreen({
     // request permission if the permission is denied and can ask again
     return granted === false && canAskAgain && (
         <CameraScreenOuterLayer>
-            <ContentLayer
+            <PermissionContentComp
                 remark='To use camera feature you need to grant the camera permission. Your permission to access camera is required.'
                 onPressEvent={requestCameraPermission}
                 buttonTest='Grant Permission'
             />
         </CameraScreenOuterLayer>
-    )
-}
-
-function ContentLayer({
-    remark,
-    onPressEvent,
-    buttonTest
-}: {
-    remark: string,
-    onPressEvent: () => void,
-    buttonTest: string
-}) {
-    return (
-        <>
-            <Text style={{
-                color: '#000',
-                fontSize: 14,
-            }}>
-                {remark}
-            </Text>
-            <View style={{
-                paddingTop: 40,
-            }}>
-                <TouchableOpacity
-                    onPress={onPressEvent}
-                    style={{
-                        backgroundColor: '#000',
-                        padding: 10,
-                        borderRadius: 5,
-                        paddingHorizontal: 20,
-                    }}
-                >
-                    <Text style={{color:"#fff", fontWeight: "bold"}}>{buttonTest}</Text>
-                </TouchableOpacity>
-            </View>
-        </>
     )
 }

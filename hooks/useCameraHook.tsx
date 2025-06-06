@@ -1,15 +1,12 @@
-import { BarcodeScanningResult, CameraCapturedPicture, CameraType, CameraView, FocusMode, useCameraPermissions } from 'expo-camera';
-import { useState, RefObject, useEffect, useRef, useCallback } from 'react'
-import * as Haptics from 'expo-haptics';
-import { useNavigation, useRouter } from 'expo-router';
-import { GestureResponderEvent, Platform, Linking, AppState, AppStateStatus } from 'react-native';
-import useMediaLibraryHook from './useMediaLibraryHook';
-import { PermissionResponse } from 'expo-media-library';
-import * as IntentLauncher from 'expo-intent-launcher'
-import { Helpers } from '@/utils/helpers';
+import { BarcodeScanningResult, CameraCapturedPicture, CameraType, CameraView, FocusMode } from 'expo-camera';
+import { useState, RefObject, useCallback } from 'react'
+import { useRouter, useFocusEffect } from 'expo-router';
+import { GestureResponderEvent, Linking} from 'react-native';
 import useAlertSoundHook from './useAlertSoundHook';
-import { useFocusEffect } from '@react-navigation/native';
 import { useCameraContext } from '@/contexts/CameraContext';
+import { cameraConfig } from '@/config/cameraConfig';
+import * as MediaLibrary from 'expo-media-library';
+import { Helpers } from '@/utils/helpers';
 
 export type focusSquare = {
 	x: number;
@@ -17,20 +14,10 @@ export type focusSquare = {
 	isVisible: boolean;
 };
 
-export function useCameraHook(ref: RefObject<CameraView>) {
-    const appState = useRef(AppState.currentState);
-    const cameraLocked = useRef(false);
-    const navigation = useNavigation();
-    const [permission, requestPermission] = useCameraPermissions();
-    const { 
-        saveImageToLibrary, 
-        requestPermission: requestLibraryPermission, 
-        permissionResponse: mediaLibraryPermissionResponse 
-    } = useMediaLibraryHook();
-    const [allowCameraUse, setAllowCameraUse] = useState<boolean>(false);
-    const [facing, setFacing] = useState<CameraType>('back');
-    const [cameraReady, setCameraReady] = useState<boolean>(false);
-    const [zoom, setZoom] = useState<number>(0);
+export function useCameraHook(
+    ref: RefObject<CameraView>,
+    cameraLockRef: RefObject<boolean>,
+) {
     const [error, setError] = useState<string | null>(null);
     const [flashMode, setFlashMode] = useState<'off'|'auto'|'on'>('off');
     const [focusMode, setFocusMode] = useState<FocusMode>('on');
@@ -47,188 +34,45 @@ export function useCameraHook(ref: RefObject<CameraView>) {
     const [isScanning, setIsScanning] = useState<boolean>(false);
     const router = useRouter();
     const {playScanAlertSound} = useAlertSoundHook();
-    const cameraContext = useCameraContext();
-
-    //  handle app state change
-    const handleAppStateChange = useCallback((nextAppState: AppStateStatus) => {
-        if (appState.current !== 'active' && nextAppState === 'active') 
-        {
-            cameraLocked.current = false;
-
-            if (ref.current && cameraReady) 
-            {
-                ref.current.resumePreview();
-            }
-        }
-        appState.current = nextAppState;
-    }, [])
-
-    //  listen to permission change
-    useEffect(() => {
-        try {
-            // Check if permissionResponse is null
-            if (!mediaLibraryPermissionResponse) return;
-
-            // Check if permissionResponse is granted
-            if (mediaLibraryPermissionResponse.status === 'granted') {
-                setAllowCameraUse(true);
-                return;
-            }
-            
-            // Check if permissionResponse is not granted
-            if (mediaLibraryPermissionResponse.canAskAgain) 
-            {
-                requestMediaLibraryPermission();
-            } 
-            else 
-            {
-                setAllowCameraUse(false);
-                setError('Permission to access media library is required');
-            }
-        }
-        catch (error) {
-            console.log("useCameraHook: useEffect: mediaPermission", error);
-            setError('Something went wrong while requesting permission');
-        }
-    }, [mediaLibraryPermissionResponse]);
-
-    //  listen to app state change
-    useEffect(() => {
-
-        //  add event listener to app state
-        const listener = AppState.addEventListener('change', handleAppStateChange);
-
-        //  cleanup the event listener
-        return () => {
-            listener.remove();
-        }
-    }, [cameraReady]);
+    const {setPhotoUri} = useCameraContext();
 
     //  listen to focus effect
     useFocusEffect(
         useCallback(() => {
-            if (ref.current) 
-            {
-                ref.current.resumePreview();
-            }
+            if (ref.current) ref.current.resumePreview();
+            cameraLockRef.current = false;
 
             return () => {
-                if (ref.current) 
-                {
-                    ref.current.pausePreview();
-                }
-
+                if (ref.current) ref.current.pausePreview();
+                if (cameraLockRef.current) cameraLockRef.current = false;
                 if (recordingTimeout) {
                     clearTimeout(recordingTimeout);
                     setRecordingTimeout(null);
-                }
-
-                if (cameraLocked.current) {
-                    cameraLocked.current = false;
-                }
+                }                
             }
         }, [])
     )
 
     /**
-     * Requests permission to access the media library
-     * @returns {Promise<void>}
-     */
-    const requestMediaLibraryPermission = async (): Promise<void> => {
-        try {
-            const response: PermissionResponse = await requestLibraryPermission();
-            setAllowCameraUse(response.granted);
-
-            if (response.granted === false) 
-            {
-                setError('Permission to access media library is required');
-                return;
-            }
-        } 
-        catch (error) 
-        {
-            console.error('Error requesting permission:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * takes the user to the system settings
-     * @returns {void}
-     */
-    const goToSettings = () => {
-        //  Check if the app is running on iOS
-        if (Platform.OS === 'ios') {
-            Linking.openURL("App-prefs:root=General");
-            return;
-        }
-
-        //  Check if the app is running on Android
-        IntentLauncher.startActivityAsync(
-            IntentLauncher.ActivityAction.APPLICATION_DETAILS_SETTINGS,
-            {
-                data: 'package:' + 'com.your_app.package', // replace with your app's package name
-            }
-        ).catch((error) => {
-            console.error('Error opening settings:', error);
-        })
-    }
-    
-    /**
-     * Toggles the camera facing between front and back
-     * @returns {void}
-     */
-    const toggleCameraFacing = (): void => {
-		setFacing(current => (current === 'back' ? 'front' : 'back'));
-	}
-
-    /**
-     * Listen for camera mount error
-     * @param error 
-     */
-    const onMountError = (error: Error | any) =>{
-        console.log(error)
-        setError(error.message);
-    }
-
-    /**
      * Takes a picture using the camera
      * @returns {Promise<CameraCapturedPicture>}
      */
-    const takePicture = async (): Promise<CameraCapturedPicture> => {
-		try {
-            //  Ensure the camera is mounted
-            ensureCameraReady();
-
-            //  Provide haptic feedback
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-
-            //  check if the camera is mounted
-            if (!ref.current) throw new Error('Camera ref is not set');
-
-            //  capture the photo
-			const photo = await ref.current.takePictureAsync();
-            if (!photo) throw new  Error('Unable to take picture');
-            return photo;
-	
-		} catch (error) {
-			console.log('Error taking picture:', error);	
+    const takePicture = async (): Promise<CameraCapturedPicture|null> => {
+        try {
+            throw new Error('Camera ref is not set');
+            await Helpers.impactHeavyFeedback();
+            return await ref.current.takePictureAsync();
+        } catch (error: Error | any) {
             throw error;
-		}
+        }
 	}
-
-    /**
-     * Handles camera ready event
-     * @returns {void}
-     */
-	const handleCameraReady = (): void => setCameraReady(true);
 
     /**
      * Cycles through flash modes: 'off' -> 'on' -> 'auto'
      * @returns {Promise<void>}
      */
     const switchFlashMode = async (): Promise<void> => {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        await Helpers.impactSoftFeedback();
         setFlashMode((prevMode) => {
             if (prevMode === 'off') {
                 return 'on';
@@ -242,36 +86,12 @@ export function useCameraHook(ref: RefObject<CameraView>) {
 
     /**
      * Handles camera focus on tap
-     * @returns {Promise<void>}
-     */
-    const canGoBack = async (): Promise<void> => {
-        try {
-            //  Ensure the camera is mounted
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    
-            //  check if the camera is mounted
-            navigation.goBack();
-
-        } catch (error) {
-            console.log(error);
-            throw error;
-        }
-    }
-
-    /**
-     * Handles camera focus on tap
      * @param event 
      */
     const onTouchStart = (e: GestureResponderEvent) => {
         const {locationX, locationY} = e.nativeEvent;
-
-        // when the camera tapped, focus on the point
         setIsRefreshing(true);
-
-        //  this is the point where the camera will focus
         setFocusSquare({ x: locationX, y: locationY, isVisible: true });
-
-        //  set the focus mode
         setFocusMode('on');
     }
 
@@ -280,14 +100,8 @@ export function useCameraHook(ref: RefObject<CameraView>) {
      * @param event 
      */
     const onTouchEnd = (e: GestureResponderEvent) => {
-
-        // when the camera tapped, focus on the point
         setIsRefreshing(false);
-
-        //  this is the point where the camera will focus
         setFocusSquare((prev) => ({ ...prev, isVisible: false }));
-
-        //  set the focus mode
         setFocusMode('off');
     }
 
@@ -297,7 +111,7 @@ export function useCameraHook(ref: RefObject<CameraView>) {
      */
     const startedRecording = async (): Promise<void> => {
         try {
-            ensureCameraReady();
+            if (!ref.current) throw new Error('Camera ref is not set');
             
             //  set recording
             setIsRecording(true);
@@ -310,7 +124,6 @@ export function useCameraHook(ref: RefObject<CameraView>) {
 
                 //  wait for 3 seconds
                 setTimeout(async () => {
-                    if (!ref.current) return;
 
                     //  done preparing for recording
                     setPreparingForRecording(false);
@@ -320,7 +133,7 @@ export function useCameraHook(ref: RefObject<CameraView>) {
 
                     //  start recording
                     const response = await ref.current.recordAsync({
-                        maxDuration: 60000
+                        maxDuration: cameraConfig.MAX_RECORDING_DURATION,
                     });
 
                     //  check if the response is null
@@ -328,18 +141,25 @@ export function useCameraHook(ref: RefObject<CameraView>) {
                     
                     // return the response
                     resolve(response);
-                }, 4000);
+
+                }, cameraConfig.RECORDING_PREP_TIME);
             });
 
             //  check if the response is null
             if (!response.uri) throw new Error('Unable to save video');
 
             //  save the video to the media library
-            await saveImageToLibrary(response.uri);
+            await MediaLibrary.saveToLibraryAsync(response.uri);
 
-        } catch (error) {
+        }
+        catch (error: Error|any) 
+        {
+            setIsRecording(false);
+            setIsRolling(false);
+            setPreparingForRecording(false);
+
             console.log(error)
-            throw error;
+            setError(`Unable to start recording. reason: ${error.message}`);
         }
     }
 
@@ -349,24 +169,20 @@ export function useCameraHook(ref: RefObject<CameraView>) {
      */
     const stopRecording = async (): Promise<void> => {
         try {
-            //
-            ensureCameraReady();
 
-            // stop recording haptic feedback
-            await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    
-            // stop recording
+            await Helpers.notificationSuccessFeedback();
             setIsRecording(false);
-
-            // set rolling state
             setIsRolling(false);
+            ref.current.stopRecording();
             
-            // stop recording
-            ref.current!.stopRecording();
+        } 
+        catch (error: Error|any) 
+        {
+            setIsRecording(false);
+            setIsRolling(false);
 
-        } catch (error) {
-            console.log(error)
-            throw error;
+            console.log(error);
+            setError(`Unable to stop recording. reason: ${error.message}`);
         }
     }
 
@@ -386,7 +202,7 @@ export function useCameraHook(ref: RefObject<CameraView>) {
             setRecordingTimeout(null);
         }, 500);
 
-        setRecordingTimeout(timeout);
+        setRecordingTimeout(timeout as unknown as NodeJS.Timeout);
     }
 
     /**
@@ -408,25 +224,25 @@ export function useCameraHook(ref: RefObject<CameraView>) {
             else 
             {
                 //  take a picture, pass on the photo to another screen
-                const photo: CameraCapturedPicture = await takePicture();
-                if (!photo) return;
-    
-                //  pause before navigation
-                if (ref.current)
+                const photo = await takePicture();
+                if (photo)
                 {
-                    ref.current.pausePreview();
+                    //  pause before navigation
+                    await ref.current.pausePreview();
+         
+                    //  set the photo uri to the camera context
+                    setPhotoUri(photo.uri);
+    
+                    //  go to the camera preview screen
+                    router.replace('/(protected)/(camera)/cameraPreview');
                 }
-     
-                //  
-                cameraContext?.setPhotoUri(photo.uri);
-
-                //
-                router.replace('/(protected)/(camera)/cameraPreview');
             }
-            
-        } catch (error) {
+        } 
+        catch (error: Error | any) 
+        {
             console.log(error);
-            throw error;
+            if (ref.current) ref.current.pausePreview();
+            setError(error.message);
         }
     }
 
@@ -435,8 +251,7 @@ export function useCameraHook(ref: RefObject<CameraView>) {
      * @returns {Promise<void>}
      */
     const openBarcodeScanner = async (): Promise<void> => {
-        ensureCameraReady();
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Helpers.impactHeavyFeedback();
         setIsScanning(true);
     }
     
@@ -445,8 +260,7 @@ export function useCameraHook(ref: RefObject<CameraView>) {
      * @returns {Promise<void>}
      */
     const closeBarcodeScanner = async (): Promise<void> => {
-        ensureCameraReady();
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        await Helpers.impactMediumFeedback();
         setIsScanning(false);
     }
 
@@ -463,86 +277,64 @@ export function useCameraHook(ref: RefObject<CameraView>) {
         const { data, type } = barCode;
 
         //  check if the barcode is a valid URL
-        if (data && type && !cameraLocked.current && type === 'qr')
-        {
-            //  close the scanner
+        if (cameraLockRef.current === false && isScanning && data && type && type === 'qr')
+        {   
+            cameraLockRef.current = true;
             setIsScanning(false);
-
-            //  feedback
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            await playScanAlertSound();
             
-            //  pause the camera preview
-            if (ref.current) ref.current.pausePreview();
-            
-            //
-            setTimeout(async () => {
-                try {
+            await new Promise((resolve, reject) => {
+                setTimeout(async () => {
+                    
+                    // lock the camera
+                    ref.current.pausePreview();
+                    
+                    //  feedback
+                    await Helpers.notificationSuccessFeedback();
+                    await playScanAlertSound();
 
-                    //  check if the url is external or internal
-                    const isExternalUrl = Helpers.isExternalLink(data);
-    
-                    //  lock the camera
-                    cameraLocked.current = true;
-    
-                    if (isExternalUrl) 
+                    try {
+
+                        //  check if the url is external or internal
+                        const isExternalUrl = Helpers.isExternalLink(data);
+                        if (isExternalUrl) 
+                        {
+                            //  go to the external link
+                            router.push({ pathname: "/(protected)/(modals)/externalRedirect", params: { destination: data } });
+                        }
+                        else 
+                        {
+                            // go to the internal link
+                            Linking.openURL(data);
+                        }
+                    } 
+                    catch (error) 
                     {
-                        //  go to the external link
-                        router.push({ pathname: "/(protected)/(modals)/externalRedirect", params: { destination: data } });
+                        console.log(error)
+                    } 
+                    finally 
+                    {                    
+                        ref.current.resumePreview();
+                        cameraLockRef.current = false;
                     }
-                    else 
-                    {
-                        // go to the internal link
-                        Linking.openURL(data);
-                    }
-                } 
-                catch (error) 
-                {
-                    console.log(error)
-                } 
-                finally {                    
-                    if (ref.current) ref.current.resumePreview();
-                    cameraLocked.current = false;
-                }
-            }, 500);
+                }, 600)
+            });
         }
-    }
-
-    /**
-     * Ensures the camera is ready before performing any actions
-     * @throws {Error} If the camera is not ready
-     */
-    function ensureCameraReady() {
-        if (!ref.current) throw new Error('Camera ref is not set');
-        if (!cameraReady) throw new Error('Camera is not ready');
     }
     
     return {
-        zoom, 
         error, 
-        facing,
         flashMode,
         focusMode,
-        cameraReady, 
         focusSquare, 
         isRolling,
         isRecording,
         isScanning,
         isRefreshing, 
-        allowCameraUse,
         preparingForRecording,
-        cameraPermission: permission, 
-        requestCameraPermission: requestPermission,
-        goToSettings,
-        setZoom, 
-        canGoBack,
         onTouchEnd,
         takePicture, 
         onTouchStart,
-        onMountError, 
         switchFlashMode,
-        handleCameraReady, 
-        toggleCameraFacing, 
         pressInHandle,
         pressOutHandle,
         openBarcodeScanner,

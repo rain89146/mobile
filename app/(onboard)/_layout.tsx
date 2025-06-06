@@ -1,3 +1,4 @@
+import { OnBoardingContextProvider } from '@/contexts/OnBoardingContext';
 import { Stack, useNavigation } from 'expo-router'
 import React from 'react'
 
@@ -12,8 +13,10 @@ export default function _layout() {
     }, [])
 
     return (
-        <Stack screenOptions={{
-            headerShown: false
-        }}/>
+        <OnBoardingContextProvider>
+            <Stack screenOptions={{
+                headerShown: false
+            }}/>
+        </OnBoardingContextProvider>
     )
 }
