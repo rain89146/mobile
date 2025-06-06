@@ -1,5 +1,5 @@
 import { ApiResponse } from "@/types/ApiResponse";
-import React, {createContext, useContext, useEffect, useRef} from "react";
+import React, {createContext, useContext} from "react";
 
 type NetworkContextType = {
     getPlaidLinkToken: (userId: string) => Promise<string>;

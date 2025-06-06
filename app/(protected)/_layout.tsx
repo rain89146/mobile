@@ -4,7 +4,7 @@ import { Redirect, Stack, useNavigation } from 'expo-router'
 import React, { useEffect } from 'react'
 import Toast from 'react-native-toast-message'
 
-export default function _layout() {
+export default function Layout() {
     const navigation = useNavigation();
     const authContext = useAuthContext();
 

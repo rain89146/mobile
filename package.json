@@ -100,5 +100,22 @@
     "eslint-config-expo": "~9.2.0",
     "typescript": "^5.8.3"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "react-native-indicators",
+          "@eva-design/eva",
+          "@react-native-vector-icons/evil-icons",
+          "@react-native-vector-icons/feather",
+          "@react-native-vector-icons/fontawesome6",
+          "@ui-kitten/eva-icons",
+          "hermes-engine",
+          "socket.io-client",
+          "validator"
+        ]
+      }
+    }
+  }
 }

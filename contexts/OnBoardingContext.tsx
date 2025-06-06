@@ -1,6 +1,6 @@
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { SessionKeys } from "@/constants/SessionKeys";
 import useAsyncStorageHook from "@/hooks/useAsyncStorageHook";
-import { createContext, useContext, useEffect, useState } from "react";
 
 type OnBoardingContextType = {
     onBoardingProgress: OnBoardingProgress;
@@ -92,7 +92,7 @@ export const OnBoardingContextProvider = ({children}: {children: React.ReactNode
             }
         }
         loadOnBoardingProgress();
-    }, []);
+    }, [getDataFromStorage]);
 
     /**
      * Update the onboarding progress

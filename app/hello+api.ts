@@ -3,19 +3,19 @@ import { ApiResponse } from "@/types/ApiResponse";
 export function GET(request: Request) {
     try {
         console.log(request);
-        const url = new URL(request.url);
+        const url = new URL(request.url).origin;
         return Response.json({
-            result: true,
+            status: true,
             message: "Hello World",
             exception: "",
-            response: null
-        } as ApiResponse<null>)
+            response: url
+        } as ApiResponse<string>)
     } catch (error: Error | unknown) {
         const message = error instanceof Error ? error.message : "Unknown Error";
         const exception = error instanceof Error ? error.name : "Unknown Exception";
 
         return Response.json({
-            result: false,
+            status: false,
             message,
             exception,
             response: null

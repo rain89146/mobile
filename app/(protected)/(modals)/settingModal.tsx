@@ -2,9 +2,8 @@ import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { View, Text, Button } from 'react-native'
 import * as Haptics from 'expo-haptics';
-import { HapticButton } from '@/components/HapticComp';
 
-export default function modal() {
+export default function Modal() {
     const navigation = useNavigation();
     const router = useRouter();
 

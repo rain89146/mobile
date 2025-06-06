@@ -4,13 +4,13 @@ import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 
-export default function grantNotificationAccess() {
+export default function GrantNotificationAccess() {
 
     const {
         onBoardingProgress,
         updateOnBoardingProgress,
     } = useOnBoardingContext();
-    
+    console.log(onBoardingProgress)
     const {
         notificationPermission,
         allowNotificationsUse,
@@ -24,7 +24,7 @@ export default function grantNotificationAccess() {
         navigation.setOptions({ 
             headerShown: false,
         });
-    }, []);
+    }, [navigation]);
 
     const goToNextScreen = () => router.replace('/(onboard)/addBankAccount');
 

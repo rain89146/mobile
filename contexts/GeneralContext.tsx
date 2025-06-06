@@ -1,6 +1,6 @@
 import { GeneralContextReducer } from "@/store/GeneralContextReducer";
 import React, {createContext, useContext, useEffect, useRef} from "react";
-import { AppState, Platform } from "react-native";
+import { AppState } from "react-native";
 
 const GeneralContext = createContext({
     appState: "",

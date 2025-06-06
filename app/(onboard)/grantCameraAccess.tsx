@@ -4,7 +4,7 @@ import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 
-export default function grantCameraAccess() {
+export default function GrantCameraAccess() {
     
     const {
         updateOnBoardingProgress,
@@ -23,7 +23,7 @@ export default function grantCameraAccess() {
         navigation.setOptions({ 
             headerShown: false,
         });
-    }, []);
+    }, [navigation]);
 
     const goToNextScreen = () => router.replace('/(onboard)/grantLocationAccess');
 

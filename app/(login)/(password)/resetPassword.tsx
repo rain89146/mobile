@@ -1,4 +1,4 @@
-import { PassInputKitty, RegInputKitty } from '@/components/form/input/InputKitty';
+import { PassInputKitty } from '@/components/form/input/InputKitty';
 import PasswordEvaluation from '@/components/PasswordEvaluation';
 import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
@@ -15,7 +15,7 @@ class PasswordError extends Error {
     }
 }
 
-export default function resetPassword() {
+export default function ResetPassword() {
     const authContext = useAuthContext();
     const navigation = useNavigation();
     const router = useRouter();
@@ -48,7 +48,7 @@ export default function resetPassword() {
             setLengthMet(false);
             setPasswordError(null);
         }
-    }, [])
+    }, [navigation])
 
     //  Set the password evaluation score
     //  This is a simple evaluation score based on the password criteria
@@ -75,7 +75,7 @@ export default function resetPassword() {
             const response = await authContext.resetPassword(code as string, password)
 
             //  when the response is not successful
-            if (!response.result) throw new Error(response.message);
+            if (!response.status) throw new Error(response.message);
             if (!response.response) throw new Error('Unable to complete sign up process');
 
             //  provide feedback to user
@@ -129,9 +129,8 @@ export default function resetPassword() {
      */
     const passwordFieldOnBlur = (): void => {
         if (!password) return;
-        Helpers.validatePassword(password) 
-        ? setPasswordError(null) 
-        : setPasswordError('Invalid format for password');
+        const err = Helpers.validatePassword(password) ? null : 'Invalid format for password';
+        setPasswordError(err);
     }
 
     return (

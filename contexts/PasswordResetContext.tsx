@@ -1,6 +1,4 @@
-import { GeneralContextReducer } from "@/store/GeneralContextReducer";
-import React, {createContext, useContext, useEffect, useRef, useState} from "react";
-import { AppState, Platform } from "react-native";
+import React, {createContext, useContext, useState} from "react";
 
 const PasswordResetContext = createContext({
     email: "",

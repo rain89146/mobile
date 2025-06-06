@@ -4,13 +4,13 @@ import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { View, Text, TouchableOpacity } from 'react-native'
 
-export default function grantLocationAccess() {
+export default function GrantLocationAccess() {
 
     const {
         onBoardingProgress,
         updateOnBoardingProgress,
     } = useOnBoardingContext();
-    
+    console.log(onBoardingProgress)
     const {
         foregroundLocationPermission,
         allowForegroundLocationUse,
@@ -24,7 +24,7 @@ export default function grantLocationAccess() {
         navigation.setOptions({ 
             headerShown: false,
         });
-    }, []);
+    }, [navigation]);
 
     const goToNextScreen = () => router.replace('/(onboard)/grantNotificationAccess');
 

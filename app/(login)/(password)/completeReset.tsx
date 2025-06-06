@@ -4,15 +4,15 @@ import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { SafeAreaView, View } from 'react-native'
 
-export default function completeReset() 
+export default function CompleteReset() 
 {
-    const [isLoading, setIsLoading] = React.useState<boolean>(false);
+    const [isLoading] = React.useState<boolean>(false);
     const router = useRouter();
     const navigation = useNavigation();
 
     useEffect(() => {
         navigation.setOptions({ headerShown: false });
-    }, []);
+    }, [navigation]);
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: "#fff" }}>

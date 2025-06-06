@@ -4,7 +4,6 @@ import * as Location from 'expo-location';
 import * as Camera from "expo-camera";
 import {Audio} from 'expo-av';
 import * as Notifications from 'expo-notifications';
-import useAsyncStorageHook from "@/hooks/useAsyncStorageHook";
 
 export type PermissionContextType = {
     allowCameraUse: boolean;
@@ -316,8 +315,14 @@ const PermissionContextProvider = ({children}: {children: React.ReactNode}) => {
             setAllowForegroundLocationUse(res.status === MediaLibrary.PermissionStatus.GRANTED);
             return res;
         }
-        catch (error)
+        catch (error: unknown)
         {
+            if (error instanceof Error) {
+                console.error('PermissionContextProvider: requestAccessToForegroundLocation', error.message);
+            }else {
+                console.error('PermissionContextProvider: requestAccessToForegroundLocation', error);
+            }
+            
             setAllowForegroundLocationUse(false);
             return null;
         }

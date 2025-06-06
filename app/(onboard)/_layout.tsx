@@ -2,7 +2,7 @@ import { OnBoardingContextProvider } from '@/contexts/OnBoardingContext';
 import { Stack, useNavigation } from 'expo-router'
 import React from 'react'
 
-export default function _layout() {
+export default function Layout() {
 
     const navigation = useNavigation();
 
@@ -10,7 +10,7 @@ export default function _layout() {
         navigation.setOptions({
             headerShown: false,
         })
-    }, [])
+    }, [navigation])
 
     return (
         <OnBoardingContextProvider>

@@ -1,13 +1,12 @@
 import { PassInputKitty } from '@/components/form/input/InputKitty';
 import PasswordEvaluation from '@/components/PasswordEvaluation';
 import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
-import AnimatedProgressBar from '@/components/ui/AnimatedProgressBar';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
 import { useSignupContext } from '@/contexts/SignupContext';
 import { Helpers } from '@/utils/helpers';
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
-import { SafeAreaView, View, Text, Alert, Platform, KeyboardAvoidingView, ScrollView } from 'react-native'
+import { SafeAreaView, View, Alert, Platform, KeyboardAvoidingView, ScrollView } from 'react-native'
 
 class PasswordError extends Error {
     constructor(message: string) {
@@ -16,7 +15,7 @@ class PasswordError extends Error {
     }
 }
 
-export default function createPassword() 
+export default function CreatePassword() 
 {
     const signupContext = useSignupContext();
     const navigation = useNavigation();
@@ -51,7 +50,7 @@ export default function createPassword()
             setLengthMet(false);
             setPasswordError(null);
         }
-    }, [])
+    }, [navigation])
 
     //  Set the password evaluation score
     //  This is a simple evaluation score based on the password criteria
@@ -78,7 +77,7 @@ export default function createPassword()
             const response = await signupContext.createAccount(signupContext.signUpPayload?.recordId as string, password);
 
             //  when the response is not successful
-            if (!response.result) throw new Error(response.message);
+            if (!response.status) throw new Error(response.message);
             if (!response.response) throw new Error('Unable to complete sign up process');
 
             //  set the password in the context
@@ -135,9 +134,8 @@ export default function createPassword()
      */
     const passwordFieldOnBlur = (): void => {
         if (!password) return;
-        Helpers.validatePassword(password) 
-        ? setPasswordError(null) 
-        : setPasswordError('Invalid format for password');
+        const err =  Helpers.validatePassword(password) ? null : 'Invalid format for password';
+        setPasswordError(err);
     }
 
     return (

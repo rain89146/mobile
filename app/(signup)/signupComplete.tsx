@@ -3,20 +3,18 @@ import { TitleAndRemark } from '@/components/ui/ContentComp'
 import { SessionKeys } from '@/constants/SessionKeys';
 import { useSignupContext } from '@/contexts/SignupContext';
 import useAsyncStorageHook from '@/hooks/useAsyncStorageHook';
-import useToastHook from '@/hooks/useToastHook';
 import { Helpers } from '@/utils/helpers';
 import { useNavigation, useRouter } from 'expo-router';
 import React from 'react'
 import { Alert, SafeAreaView, View } from 'react-native'
 
-export default function signupComplete() 
+export default function SignupComplete() 
 {
     //  hooks
     const signupContext = useSignupContext();
     const navigation = useNavigation();
     const router = useRouter();
-    const { showToast, hideToast } = useToastHook();
-    const {getDataFromStorage, storeDataIntoStorage} = useAsyncStorageHook();
+    const {storeDataIntoStorage} = useAsyncStorageHook();
     
     //  local states
     const [isLoading, setIsLoading] = React.useState(false);
@@ -24,7 +22,7 @@ export default function signupComplete()
     // set the header to false
     React.useEffect(() => {
         navigation.setOptions({ headerShown: false })
-    }, []);
+    }, [navigation]);
 
     /**
      * Complete sign up
@@ -45,7 +43,7 @@ export default function signupComplete()
             const loginResponse = await signupContext.loginWithRecordId(recordId);
 
             //  check if login response is successful
-            if (!loginResponse.result) throw new Error(loginResponse.message);
+            if (!loginResponse.status) throw new Error(loginResponse.message);
 
             //  store the auth credentials in the storage
             await storeDataIntoStorage(SessionKeys.AUTH_STORAGE_KEY, loginResponse.response);

@@ -1,5 +1,5 @@
 import { RegInputKitty } from '@/components/form/input/InputKitty';
-import { ActionBetaButton, ActionButton, BackButton } from '@/components/ui/ActionButtons';
+import { ActionBetaButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
 import { useSignupContext } from '@/contexts/SignupContext';
 import { Helpers } from '@/utils/helpers';
@@ -21,7 +21,7 @@ class InvalidConfirmationCode extends Error {
 // 30 seconds
 const resendTime = 30 * 1000;
 
-export default function emailConfirmation() {
+export default function EmailConfirmation() {
 
     //  hooks
     const signupContext = useSignupContext();
@@ -42,7 +42,7 @@ export default function emailConfirmation() {
     //  set the header to false
     React.useEffect(() => {
         navigation.setOptions({ headerShown: false })
-    }, [])
+    }, [navigation])
 
     //  start the initial countdown for 30 seconds
     useEffect(() => {
@@ -82,7 +82,7 @@ export default function emailConfirmation() {
             const apiResponse = await signupContext.verifyConfirmationCode(confirmationCode);
 
             //  when unable to verify the confirmation code, we will show an error message
-            if (!apiResponse.result) throw new Error(apiResponse.message);
+            if (!apiResponse.status) throw new Error(apiResponse.message);
 
             //  check if the confirmation code is valid
             if (!apiResponse.response) throw new InvalidConfirmationCode();
@@ -133,7 +133,7 @@ export default function emailConfirmation() {
             const apiResponse = await signupContext.sendVerificationCode(email);
 
             //  when unable to send the confirmation code, we will show an error message
-            if (!apiResponse.result) throw new Error('Failed to send confirmation code');
+            if (!apiResponse.status) throw new Error('Failed to send confirmation code');
 
             //  after the code is sent, we will start the countdown for 30 seconds
             //  within the 30 seconds, the user will not be able to click on the resend button
@@ -188,9 +188,9 @@ export default function emailConfirmation() {
                 return;
             }
 
-            Helpers.validateNumber(confirmationCode) 
-            ? setConfirmationCodeError(null) 
-            : setConfirmationCodeError('Invalid format for confirmation code');
+            const err = Helpers.validateNumber(confirmationCode) ? null : 'Invalid format for confirmation code';
+            
+            setConfirmationCodeError(err);
         }
         else 
         {
