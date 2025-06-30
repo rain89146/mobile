@@ -2,9 +2,13 @@ import { View, TouchableOpacity, Text } from 'react-native'
 import usePlaidHook from './hooks/usePlaidHook';
 import React from 'react';
 
-export function PlaidAuthButton() 
+export function PlaidAuthButton({
+    redirectUrl
+}: {
+    redirectUrl?: any;
+}) 
 {    
-    const {isDisabled, handleOpenLink, error, isLoading} = usePlaidHook();
+    const {isDisabled, handleOpenLink, error, isLoading} = usePlaidHook(redirectUrl);
 
     return (
         <>

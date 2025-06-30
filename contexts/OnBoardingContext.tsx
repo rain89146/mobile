@@ -92,7 +92,7 @@ export const OnBoardingContextProvider = ({children}: {children: React.ReactNode
             }
         }
         loadOnBoardingProgress();
-    }, [getDataFromStorage]);
+    }, []);
 
     /**
      * Update the onboarding progress

@@ -93,7 +93,7 @@ const AuthContextProvider = ({children}: {children: React.ReactNode}) => {
         return () => {
             console.log('AuthContextProvider unmounted');
         }
-    }, [getAuthCredFromStorage]);
+    }, []);
 
     /**
      * Sign in with Apple

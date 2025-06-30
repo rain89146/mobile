@@ -3,20 +3,16 @@ import { Redirect, useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { SafeAreaView, View } from 'react-native'
 import { ActionButton, SecondaryButton } from '@/components/ui/ActionButtons';
-import { PlaidAuthButton } from '@/lib/plaid/PlaidAuthButtons';
 
-export default function Index() {
-
+export default function Index() 
+{
     const navigation = useNavigation();
     const authContext = useAuthContext();
     const router = useRouter();
     
-
     // Set the header to be hidden
     useEffect(() => {
-        navigation.setOptions({
-            headerShown: false,
-        })
+        navigation.setOptions({ headerShown: false })
     }, [navigation])
 
     //  check if the user is logged in
@@ -35,7 +31,6 @@ export default function Index() {
                     marginTop: 'auto',
                     padding: 35
                 }}>
-                    <PlaidAuthButton />
                     <ActionButton
                         onPressEvent={() => router.push('/(signup)/accountRegister')}
                         isLoading={false}

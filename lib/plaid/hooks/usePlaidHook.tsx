@@ -1,25 +1,18 @@
 import {
   LinkExit,
-  LinkEvent,
   LinkLogLevel,
   LinkSuccess,
   dismissLink,
   LinkOpenProps,
-  usePlaidEmitter,
   LinkIOSPresentationStyle,
   LinkTokenConfiguration,
-  FinanceKitError,
   create,
-  open,
-  syncFinanceKit,
-  submit,
-  SubmissionData,
+  open
 } from 'react-native-plaid-link-sdk';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Platform } from 'react-native';
 import { useNetworkContext } from '@/contexts/NetworkContext';
-import { NativeModules } from 'react-native';
+import { useRouter } from 'expo-router';
 
 interface PlaidHookReturn {
     isDisabled: boolean;
@@ -28,8 +21,10 @@ interface PlaidHookReturn {
     handleOpenLink: () => void;
 }
 
-export default function usePlaidHook(): PlaidHookReturn
+export default function usePlaidHook(redirectUrl: string): PlaidHookReturn
 {
+    const router = useRouter();
+
     const {getPlaidLinkToken, exchangePlaidPublicToken} = useNetworkContext();
     const [linkToken, setLinkToken] = useState<string | null>(null);
     const [isDisabled, setIsDisabled] = useState<boolean>(true);
@@ -39,7 +34,9 @@ export default function usePlaidHook(): PlaidHookReturn
     // Replace with actual user ID or context
     const userId = '1234567890'; 
 
-    console.log("PlaidLink NativeModule:", NativeModules.PlaidLink);
+    // usePlaidEmitter((event: LinkEvent) => {
+    //     console.log('plaid event', {event});
+    // })
 
     /**
      * This function creates a Plaid Link token by making a request to the backend.
@@ -110,7 +107,6 @@ export default function usePlaidHook(): PlaidHookReturn
      */
     const handlePlaidSuccess = async (success: LinkSuccess) => {
         try {
-            console.log('Plaid Link success:', success);
             setIsLoading(true);
             setIsDisabled(true);
 
@@ -123,9 +119,10 @@ export default function usePlaidHook(): PlaidHookReturn
 
             //  exchange the public token for an access token
             const response = await exchangePlaidPublicToken(userId, publicToken);
-            console.log('Plaid Link success:', response);
-
-            //  navigate to next screen
+            if (response && redirectUrl) {
+                router.replace(redirectUrl as any)
+            }
+            return;
         } 
         catch (error) 
         {
@@ -144,15 +141,22 @@ export default function usePlaidHook(): PlaidHookReturn
      * @param exit 
      */
     const handlePlaidExit = (linkExit: LinkExit): void => {
-        const report = {
-            error: linkExit.error,
-            institution: linkExit.metadata.institution,
-            linkSessionId: linkExit.metadata.linkSessionId,
-            requestId: linkExit.metadata.requestId,
-            status: linkExit.metadata.status,
-        }
-        console.log('Plaid Link exit:', report);
+        console.log('Plaid Link exit:', {linkExit});
         dismissLink();
+        resetPlaidLink();
+    }
+
+    /**
+     * Resets the Plaid Link state.
+     */
+    const resetPlaidLink = () => {
+        setIsDisabled(false);
+        setIsLoading(false);
+
+        //  after the user exits plaid link,
+        if (linkToken) {
+            initPlaidLink(linkToken);
+        }
     }
 
     /**
