@@ -3,10 +3,12 @@ import PasswordEvaluation from '@/components/PasswordEvaluation';
 import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
 import { useSignupContext } from '@/contexts/SignupContext';
+import useToastHook from '@/hooks/useToastHook';
+import { SignupService } from '@/services/SignupService';
 import { Helpers } from '@/utils/helpers';
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
-import { SafeAreaView, View, Alert, Platform, KeyboardAvoidingView, ScrollView } from 'react-native'
+import { SafeAreaView, View, Platform, KeyboardAvoidingView, ScrollView } from 'react-native'
 
 class PasswordError extends Error {
     constructor(message: string) {
@@ -20,7 +22,8 @@ export default function CreatePassword()
     const signupContext = useSignupContext();
     const navigation = useNavigation();
     const router = useRouter();
-
+    const { showToast, hideToast } = useToastHook();
+    
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [password, setPassword] = React.useState<string>('');
     const [passwordError, setPasswordError] = React.useState<string | null>(null);
@@ -74,11 +77,16 @@ export default function CreatePassword()
             if (Helpers.validatePassword(password) === false) throw new PasswordError('Password must include at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character.');
 
             //  complete the sign up process
-            const response = await signupContext.createAccount(signupContext.signUpPayload?.recordId as string, password);
+            const response = await SignupService.addPassword(signupContext.signUpPayload?.recordId as string, password);
 
             //  when the response is not successful
-            if (!response.status) throw new Error(response.message);
-            if (!response.response) throw new Error('Unable to complete sign up process');
+            if (!response.status) 
+            {
+                const { message, exception } = response;
+                const error = new Error(message || 'Unknown server error');
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
 
             //  set the password in the context
             signupContext.setSignUpPayload({ ...signupContext.signUpPayload, password });
@@ -89,19 +97,37 @@ export default function CreatePassword()
             //  redirect to complete sign up page
             router.replace('/(signup)/signupComplete');
         }
-        catch (error: Error | any)
+        catch (error: unknown)
         {
+            console.warn('CreatePassword: submitPassword: error:', error);
+
+            // provide feedback to user
             Helpers.notificationErrorFeedback();
 
-            console.log('Error submitting password: ', error);
+            //  default error message
+            let defaultErrorMessage = 'An error occurred while submitting the password. Please try again later.';
 
-            if (error.name === 'PasswordError')
+            // handle specific errors
+            if (error instanceof Error)
             {
-                setPasswordError(error.message);
-            } 
-            else {
-                Alert.alert('Error', 'An error occurred while submitting the password. Please try again.');
+                if (error.name === 'PasswordError')
+                {
+                    setPasswordError(error.message);
+                    return;
+                } 
+
+                //  update the default error message
+                defaultErrorMessage = error.message || defaultErrorMessage;
             }
+            
+            //  all other errors
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            }); 
         }
         finally 
         {

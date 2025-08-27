@@ -3,12 +3,13 @@ import { ActionBetaButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
 import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect } from 'react'
-import { SafeAreaView, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native'
+import { useNavigation, useRouter } from 'expo-router';
+import React, { useEffect, useState, useRef } from 'react'
+import { SafeAreaView, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { DotIndicator } from 'react-native-indicators';
 import useToastHook from '@/hooks/useToastHook';
-import { useAuthContext } from '@/contexts/AuthenticationContext';
+import { usePasswordResetContext } from '@/contexts/PasswordResetContext';
+import { AuthService } from '@/services/AuthService';
 
 class InvalidVerificationCode extends Error {
     constructor(message?: string) {
@@ -18,31 +19,38 @@ class InvalidVerificationCode extends Error {
     }
 }
 
+class MismatchVerificationCodeError extends Error {
+    constructor(message?: string) {
+        super(message);
+        this.name = this.constructor.name;
+        this.message = (message) ? message : 'Verification code does not match';
+    }
+}
+
 // 30 seconds
 const resendTime = 30 * 1000;
 
 export default function EmailConfirmation() {
 
     //  hooks
-    const authContext = useAuthContext();
+    const passwordContext = usePasswordResetContext();
     const navigation = useNavigation();
     const router = useRouter();
     const { showToast, hideToast } = useToastHook();
-    const {email} = useLocalSearchParams();
     
     //  local states
-    const [isLoading, setIsLoading] = React.useState<boolean>(false);
-    const [verificationCode, setVerificationCode] = React.useState<string>('');
-    const [verificationCodeError, setVerificationCodeError] = React.useState<string | null>(null);
-    const [allowToSubmit, setAllowToSubmit] = React.useState<boolean>(false);
-    const [resendLoading, setResendLoading] = React.useState<boolean>(false);
-    const [canResend, setCanResend] = React.useState<boolean>(false);
-    const [resendTimer, setResendTimer] = React.useState<number>(resendTime);
-    
-    const timerRef = React.useRef(0);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [verificationCode, setVerificationCode] = useState<string>('');
+    const [verificationCodeError, setVerificationCodeError] = useState<string | null>(null);
+    const [allowToSubmit, setAllowToSubmit] = useState<boolean>(false);
+    const [resendLoading, setResendLoading] = useState<boolean>(false);
+    const [canResend, setCanResend] = useState<boolean>(false);
+    const [resendTimer, setResendTimer] = useState<number>(resendTime);
+
+    const timerRef = useRef(0);
 
     //  set the header to false
-    React.useEffect(() => {
+    useEffect(() => {
         navigation.setOptions({ headerShown: false });
 
         //  cleanup
@@ -76,6 +84,15 @@ export default function EmailConfirmation() {
         }
     }, [])
 
+    // when mounted, check if the email is provided in the context
+    useEffect(() => {
+        if (!passwordContext.email) 
+        {
+            router.replace('/(login)/(password)/forgotPassword');
+            return;
+        }
+    }, [passwordContext, router]);
+
     /**
      * Submit the verification code to the server
      * @returns {Promise<void>}
@@ -91,40 +108,62 @@ export default function EmailConfirmation() {
             //  check if the verification code is a number
             if (!Helpers.validateNumber(verificationCode)) throw new InvalidVerificationCode('Invalid format for verification code');
 
+            //  check if the email is provided through context
+            if (!passwordContext.email) throw new Error('Email is missing from the context');
+
             //  if the verification code is valid, navigate to the next screen
-            const apiResponse = await authContext.verifyPasswordResetCode(verificationCode);
+            const apiResponse = await AuthService.verifyPasswordResetCode(passwordContext.email, verificationCode);
 
             //  when unable to verify the verification code, we will show an error message
-            if (!apiResponse.status) throw new InvalidVerificationCode(apiResponse.message);
+            if (!apiResponse.status)
+            {
+                const { message, exception } = apiResponse;
+                const error = new Error(message || 'An error occurred while verifying the verification code');
+                error.name = exception || 'UnknownError';
+                console.log(error)
+                throw error;
+            }           
 
-            //  check if the verification code is valid
-            if (!apiResponse.response) throw new InvalidVerificationCode();
+            //  when verification code is not matched, we will throw an error
+            if (!apiResponse.response) throw new MismatchVerificationCodeError();
 
             //  provide feedback to user
             Helpers.impactSoftFeedback();
 
             //  navigate to the next screen
-            router.push({
-                pathname: '/(login)/(password)/resetPassword',
-                params: {
-                    code: verificationCode,
-                }
-            });
+            router.replace('/(login)/(password)/resetPassword');
         } 
-        catch (error: Error|any)
+        catch (error: unknown)
         {
             console.log('ForgotPasswordEmailVerification: submitVerificationCode: ', error);
+
+            //  provide feedback to user
             Helpers.notificationErrorFeedback();
 
-            //  when invalid verification code is thrown
-            if (error.name === 'InvalidVerificationCode') 
+            // default error handling
+            let defaultErrorMessage = 'We were unable to verify the verification code. Please try again later.';
+
+            //  when the error is a known error
+            if (error instanceof Error)
             {
-                setVerificationCodeError(error.message);
-                return;
+                //  when invalid verification code is thrown
+                if (error.name === 'InvalidVerificationCode') 
+                {
+                    setVerificationCodeError(error.message);
+                    return;
+                }
+
+                //  when other errors are thrown
+                defaultErrorMessage = error.message;
             }
-            
-            //  when the verification code is invalid
-            Alert.alert('Oops! Something went wrong', 'We were unable to verify the verification code. Please try again later.');
+
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         }
         finally 
         {
@@ -142,14 +181,18 @@ export default function EmailConfirmation() {
         try 
         {
             //  check if the email is valid
-            if (!email) throw new Error('Email is required');
-            if (!Helpers.validateEmail(email as string)) throw new Error('Invalid email address');
+            if (!passwordContext.email) throw new Error('Email is required');
 
             //  send the verification code to the user's email address
-            const apiResponse = await authContext.sendPasswordResetRequest(email as string);
+            const apiResponse = await AuthService.sendPasswordResetRequest(passwordContext.email as string);
 
             //  when unable to send the verification code, we will show an error message
-            if (!apiResponse.status) throw new Error('Failed to send verification code');
+            if (!apiResponse.status) 
+            {
+                const error = new Error(apiResponse.message);
+                error.name = apiResponse.exception || 'UnknownError';
+                throw error;
+            }
 
             //  after the code is sent, we will start the countdown for 30 seconds
             //  within the 30 seconds, the user will not be able to click on the resend button
@@ -181,10 +224,24 @@ export default function EmailConfirmation() {
                 onPress: () => hideToast()
             })
         } 
-        catch (error) 
+        catch (error: unknown) 
         {
             console.log('forgotPasswordEmailVerification: sendVerificationCode: ', error);
-            Alert.alert('Something went wrong', 'We were unable to send the verification code. Please try again later.');
+            
+            //  provide feedback to user
+            Helpers.notificationErrorFeedback();
+
+            //  when the error is a known error
+            const defaultErrorMessage = (error instanceof Error) ? error.message : 'We were unable to send the verification code. Please try again later.';
+
+            // other errors
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         } 
         finally {
             setResendLoading(false);
@@ -192,7 +249,7 @@ export default function EmailConfirmation() {
     }
 
     /**
-     * When the user clicks on the back button, we will navigate to the previous screen
+     * When the user clicks on the input field, we will check if the verification code is valid
      * @returns {void}
      */
     const onBlurEvent = (e: any): void => {
@@ -219,8 +276,16 @@ export default function EmailConfirmation() {
      * @returns {void}
      */
     const inputFieldOnChangeEvent = (value: string): void => {
-        setVerificationCode(value);
-        setAllowToSubmit(value.length > 0) 
+        const trimmedValue = value.trim();
+
+        //  make sure the value is number
+        if (trimmedValue) {
+            const err = Helpers.validateNumber(trimmedValue) ? null : 'Invalid format of verification code';
+            setVerificationCodeError(err);
+        }
+
+        setVerificationCode(trimmedValue);
+        setAllowToSubmit(trimmedValue.length === 6); 
     }
 
     return (
@@ -262,6 +327,7 @@ export default function EmailConfirmation() {
                                     onBlurEvent={onBlurEvent}
                                     onFocusEvent={() => setVerificationCodeError(null)}
                                     error={verificationCodeError}
+                                    maxLength={6}
                                 />
                             </View>
                             <View style={{width: '100%'}}>
@@ -307,7 +373,7 @@ export default function EmailConfirmation() {
                                                     }}>
                                                         Resend Verification Code {
                                                             ((resendTimer / 1000) !== 0) 
-                                                            ? `(${resendTimer / 1000}s)`
+                                                            ? `(${Math.ceil(resendTimer / 1000)}s)`
                                                             : ''
                                                         }
                                                     </Text>

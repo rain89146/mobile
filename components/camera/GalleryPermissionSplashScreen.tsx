@@ -1,6 +1,7 @@
 import CameraScreenOuterLayer from './CameraScreenOuterLayer';
 import * as MediaLibrary from 'expo-media-library';
 import { PermissionContentComp } from './PermissionContentComp';
+import React from 'react';
 
 export default function GalleryPermissionSplashScreen({
     galleryPermission,

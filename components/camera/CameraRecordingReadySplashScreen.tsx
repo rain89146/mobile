@@ -23,7 +23,7 @@ export default function CameraRecordingReadySplashScreen({preparingForRecording}
             return () => clearInterval(interval);
         }
         setCounter(3);
-    }, [preparingForRecording])
+    }, [preparingForRecording, beepSound]);
     
     return (
         <View style={{

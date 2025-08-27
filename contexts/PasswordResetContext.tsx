@@ -1,13 +1,24 @@
-import React, {createContext, useContext, useState} from "react";
+import React, {createContext, useContext, useEffect, useState} from "react";
 
-const PasswordResetContext = createContext({
+interface PasswordResetContextType {
+  email: string|null;
+  setEmail: (email: string) => void;
+}
+
+const PasswordResetContext = createContext<PasswordResetContextType>({
     email: "",
     setEmail: (email: string) => {},
 });
 
 const PasswordResetContextProvider = ({children}: {children: React.ReactNode}) => {
 
-    const [email, setEmail] = useState<string>("");
+    const [email, setEmail] = useState<string|null>(null);
+
+    useEffect(() => {
+        return () => {
+            setEmail(null);
+        }
+    }, [])
     
     return (
         <PasswordResetContext.Provider value={{

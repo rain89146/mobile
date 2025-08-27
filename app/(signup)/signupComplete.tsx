@@ -1,21 +1,29 @@
+import React from 'react'
 import { ActionButton } from '@/components/ui/ActionButtons'
 import { TitleAndRemark } from '@/components/ui/ContentComp'
-import { SessionKeys } from '@/constants/SessionKeys';
+import { DopaAuthResponse, useAuthContext } from '@/contexts/AuthenticationContext';
 import { useSignupContext } from '@/contexts/SignupContext';
-import useAsyncStorageHook from '@/hooks/useAsyncStorageHook';
 import { Helpers } from '@/utils/helpers';
 import { useNavigation, useRouter } from 'expo-router';
-import React from 'react'
 import { Alert, SafeAreaView, View } from 'react-native'
+import { SignupService } from '@/services/SignupService';
+
+class MissingRecordIdError extends Error {
+    constructor(message?: string) {
+        super(message);
+        this.name = this.constructor.name;
+        this.message = (message) ? message : 'Record ID is required';
+    }
+}
 
 export default function SignupComplete() 
 {
     //  hooks
+    const authContext = useAuthContext();
     const signupContext = useSignupContext();
     const navigation = useNavigation();
     const router = useRouter();
-    const {storeDataIntoStorage} = useAsyncStorageHook();
-    
+
     //  local states
     const [isLoading, setIsLoading] = React.useState(false);
 
@@ -23,6 +31,68 @@ export default function SignupComplete()
     React.useEffect(() => {
         navigation.setOptions({ headerShown: false })
     }, [navigation]);
+
+    /**
+     * Complete account sign up
+     * @param recordId Record ID to complete sign up
+     * @returns {Promise<string>}
+     */
+    async function completeAccountSignUp(recordId: string): Promise<string>
+    {
+        try {
+            //  check if record id is available
+            if (!recordId) throw new MissingRecordIdError();
+
+            //  call the signup service to complete the sign up process
+            const apiResponse = await SignupService.completeSignUp(recordId);
+            
+            //  check if complete sign up response is successful
+            if (!apiResponse.status)
+            {
+                const { message, exception } = apiResponse;
+                const error = new Error(message || 'Failed to complete sign up');
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
+            //  get user id from the response
+            return apiResponse.response;
+
+        } catch (error) {
+            console.error("SignupComplete: completeAccountSignUp: error:", error);
+            throw error;
+        }
+    }
+
+    /**
+     * Systematic login
+     * @param userId User ID to log in
+     * @description This function is called to log the user in after the sign up process is complete.
+     * It will call the systematic login service with the user ID and return the login response
+     * @returns {Promise<DopaAuthResponse>}
+     */
+    async function systematicLogin(userId: string): Promise<DopaAuthResponse>
+    {
+        try {
+            //  call the login service to log the user in
+            const apiResponse = await SignupService.systematicLogin(userId);
+
+            //  check if login response is successful
+            if (!apiResponse.status) 
+            {
+                const { message, exception } = apiResponse;
+                const error = new Error(message || 'Failed to log in');
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
+
+            //  return the login response
+            return apiResponse.response;
+
+        } catch (error) {
+            console.error("SignupComplete: systematicLogin: error:", error);
+            throw error;
+        }
+    }
 
     /**
      * Complete sign up
@@ -37,22 +107,30 @@ export default function SignupComplete()
             const recordId = signupContext.signUpPayload?.recordId;
 
             //  check if record id is available
-            if (!recordId) throw new Error('Record ID is required');
+            if (!recordId) throw new MissingRecordIdError();
 
-            //  login the user with the record id
-            const loginResponse = await signupContext.loginWithRecordId(recordId);
+            //  get user id from the response
+            const userId = await completeAccountSignUp(recordId);
 
-            //  check if login response is successful
-            if (!loginResponse.status) throw new Error(loginResponse.message);
+            //  login the user with the user id
+            const loginResponse = await systematicLogin(userId);
 
-            //  store the auth credentials in the storage
-            await storeDataIntoStorage(SessionKeys.AUTH_STORAGE_KEY, loginResponse.response);
+            //  set the auth credentials
+            await authContext.StoreAuthCred({
+                authProvider: 'email',
+                userId,
+                dopa: {
+                    accessToken: loginResponse.accessToken,
+                    refreshToken: loginResponse.refreshToken
+                },
+                plaidUserToken: loginResponse.plaidUserToken
+            });
 
             //  provide feedback to the user
             Helpers.impactSoftFeedback();
 
             //  start the onboarding process
-            router.replace('/(onboard)/grantCameraAccess');    
+            router.replace('/(protected)/(tabs)/(home)/home');    
         } 
         catch (error: Error|any) 
         {

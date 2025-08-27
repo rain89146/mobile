@@ -1,3 +1,4 @@
+import { obsidian, primaryTextColor } from '@/constants/Colors'
 import React from 'react'
 import { View, Text } from 'react-native'
 
@@ -14,7 +15,9 @@ export function TitleAndRemark({
         }}>
             <Text style={{
                 fontWeight: 'bold',
-                fontSize: 35
+                fontSize: 35,
+                fontFamily: 'PlayfairDisplay-Bold',
+                color: "#1d1227"
             }}>
                 {title}
             </Text>
@@ -23,12 +26,53 @@ export function TitleAndRemark({
             }}>
                 <Text style={{
                     fontSize: 16,
-                    color: "#484848",
+                    color: "#352248",
                     lineHeight: 25
                 }}>
                     {remark}
                 </Text>
             </View>
+        </View>
+    )
+}
+
+export function DarkTitleAndRemark({
+    title,
+    remark,
+}: {
+    title?: string|null
+    remark?: string|null
+}) {
+    return (
+        <View style={{
+            paddingBottom: 25
+        }}>
+            {
+                title && (
+                    <Text style={{
+                        fontWeight: 'bold',
+                        fontSize: 35,
+                        color: primaryTextColor,
+                        lineHeight: 40,
+                        fontFamily: 'PlayfairDisplay-Regular'
+                    }}>
+                        {title}
+                    </Text>
+                )
+            }
+            {remark && (
+                <View style={{
+                    marginTop: title ? 15 : 0
+                }}>
+                    <Text style={{
+                        fontSize: 14,
+                        color: "#d8dee0",
+                        lineHeight: 20
+                    }}>
+                        {remark}
+                    </Text>
+                </View>
+            )}
         </View>
     )
 }
@@ -51,15 +95,15 @@ export function DividerLineWithText({
     return (
         <View style={{
             position: 'relative',
-            marginTop: 30,
-            marginBottom: 30,
+            marginTop: 35,
+            marginBottom: 35,
             alignItems: 'center',
         }}>
             <View
                 style={{
                     width: '100%',
                     height: 1,
-                    backgroundColor: '#bcbcbc',
+                    backgroundColor: '#fff',
                 }}
             >
             </View>
@@ -67,11 +111,11 @@ export function DividerLineWithText({
                 style={{
                     position: 'absolute',
                     top: -10,
-                    backgroundColor: '#fff',
+                    backgroundColor: obsidian,
                     paddingHorizontal: 10,
                     fontSize: 14,
                     fontWeight: 'bold',
-                    color: '#bcbcbc',
+                    color: '#fff',
                 }}
             >{text}</Text>
         </View>

@@ -1,3 +1,4 @@
+import React from 'react';
 import CameraScreenOuterLayer from './CameraScreenOuterLayer';
 import { PermissionResponse } from 'expo-camera';
 import { PermissionContentComp } from './PermissionContentComp';

@@ -1,6 +1,14 @@
 import { View, Text } from "react-native";
 import AnimatedProgressBar from "./ui/AnimatedProgressBar";
+import React from "react";
 
+/**
+ * Password strength evaluation component
+ * This component displays the password strength based on the score provided.
+ * It shows a label for password strength and an animated progress bar indicating the strength level.
+ * Combine use with `usePasswordStrengthEvaluatorHook` for score calculation.
+ * @param param: { score: number }
+ */
 export default function PasswordEvaluation({
     score,
 }: {

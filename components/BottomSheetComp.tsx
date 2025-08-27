@@ -1,6 +1,6 @@
 import BottomSheet, { BottomSheetView, BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet'
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
-import {ReactNode, RefObject} from 'react';
+import React, {ReactNode, RefObject} from 'react';
 
 export interface BottomSheetProps {
     sheetRef: RefObject<BottomSheetMethods>;

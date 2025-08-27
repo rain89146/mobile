@@ -6,15 +6,24 @@ import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
-import { SafeAreaView, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native'
+import { SafeAreaView, View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { DotIndicator } from 'react-native-indicators';
 import useToastHook from '@/hooks/useToastHook';
+import { SignupService } from '@/services/SignupService';
 
 class InvalidConfirmationCode extends Error {
     constructor(message?: string) {
         super(message);
         this.name = this.constructor.name;
         this.message = (message) ? message : 'Invalid confirmation code';
+    }
+}
+
+class CodeMismatchError extends Error {
+    constructor(message?: string) {
+        super(message);
+        this.name = this.constructor.name;
+        this.message = (message) ? message : 'Confirmation code does not match';
     }
 }
 
@@ -78,14 +87,24 @@ export default function EmailConfirmation() {
             //  check if the confirmation code is a number
             if (!Helpers.validateNumber(confirmationCode)) throw new InvalidConfirmationCode('Invalid format for confirmation code');
 
+            //  get the email from the signup context
+            const email = signupContext.signUpPayload?.email;
+            if (!email) throw new Error('Email is required');
+
             //  if the confirmation code is valid, navigate to the next screen
-            const apiResponse = await signupContext.verifyConfirmationCode(confirmationCode);
+            const apiResponse = await SignupService.verifyEmailAddress(email, confirmationCode);
 
             //  when unable to verify the confirmation code, we will show an error message
-            if (!apiResponse.status) throw new Error(apiResponse.message);
+            if (!apiResponse.status)
+            {
+                const { message, exception } = apiResponse;
+                const error = new Error(message || 'Unknown server error');
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
 
-            //  check if the confirmation code is valid
-            if (!apiResponse.response) throw new InvalidConfirmationCode();
+            //  if the confirmation code is invalid, throw an error
+            if (apiResponse.response === false) throw new CodeMismatchError();
 
             //  if the confirmation code is valid, navigate to the next screen
             signupContext.setSignUpPayload({ ...signupContext.signUpPayload, emailVerificationCode: confirmationCode });
@@ -96,20 +115,36 @@ export default function EmailConfirmation() {
             //  navigate to the next screen
             router.replace('/(signup)/addPersonalInfo');
         } 
-        catch (error: Error|any)
+        catch (error: unknown)
         {
-            console.log('SignUpEmailVerification: submitConfirmationCode: ', error);
+            console.log('SignUpEmailVerification: submitConfirmationCode: error:', error);
+            
+            //  provide feedback to user
             Helpers.notificationErrorFeedback();
 
+            //  default error message
+            let defaultErrorMessage = 'We were unable to verify the confirmation code. Please try again later.';
+
             //  when invalid confirmation code is thrown
-            if (error.name === 'InvalidConfirmationCode') 
+            if (error instanceof Error) 
             {
-                setConfirmationCodeError(error.message);
-                return;
+                if (error.name === 'InvalidConfirmationCode') 
+                {
+                    setConfirmationCodeError(error.message);
+                    return;
+                }
+
+                defaultErrorMessage = error.message || defaultErrorMessage;
             }
-            
-            //  when the confirmation code is invalid
-            Alert.alert('Oops! Something went wrong', 'We were unable to verify the confirmation code. Please try again later.');
+
+            //  show toast message
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         }
         finally 
         {
@@ -130,10 +165,16 @@ export default function EmailConfirmation() {
             if (!email) throw new Error('Email is required');
 
             //  send the confirmation code to the user's email address
-            const apiResponse = await signupContext.sendVerificationCode(email);
+            const apiResponse = await SignupService.sendVerificationCode(email);
 
             //  when unable to send the confirmation code, we will show an error message
-            if (!apiResponse.status) throw new Error('Failed to send confirmation code');
+            if (!apiResponse.status)
+            {
+                const {message, exception} = apiResponse;
+                const error = new Error(message || 'Failed to send confirmation code');
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
 
             //  after the code is sent, we will start the countdown for 30 seconds
             //  within the 30 seconds, the user will not be able to click on the resend button
@@ -165,10 +206,24 @@ export default function EmailConfirmation() {
                 onPress: () => hideToast()
             })
         } 
-        catch (error) 
+        catch (error: unknown) 
         {
-            console.log('SignUpEmailConfirmationScreen: sendConfirmationCode: ', error);
-            Alert.alert('Something went wrong', 'We were unable to send the confirmation code. Please try again later.');
+            console.warn('SignUpEmailConfirmationScreen: sendConfirmationCode: error:', error);
+
+            //  provide feedback to user
+            Helpers.notificationErrorFeedback();
+            
+            // default error message
+            const defaultErrorMessage = (error instanceof Error) ? error.message : 'We were unable to send the confirmation code. Please try again later.';
+
+            //  show toast message
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         } 
         finally {
             setResendLoading(false);

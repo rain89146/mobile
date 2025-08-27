@@ -1,5 +1,5 @@
 import { useOnBoardingContext } from '@/contexts/OnBoardingContext';
-import { PlaidAuthButton } from '@/lib/plaid/PlaidAuthButtons';
+import { PlaidAuthButton } from '@/components/plaid/PlaidAuthButtons';
 import { useNavigation } from 'expo-router';
 import React, { useEffect } from 'react'
 import { View, Text } from 'react-native'

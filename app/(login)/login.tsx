@@ -1,12 +1,18 @@
-import { PassInputKitty, RegInputKitty } from '@/components/form/input/InputKitty';
-import { ActionButton, AppleButton, BackButton } from '@/components/ui/ActionButtons';
-import { DividerLineWithText, TitleAndRemark } from '@/components/ui/ContentComp';
-import { useAuthContext } from '@/contexts/AuthenticationContext';
+import { SecondaryBackground } from '@/components/background/LandingBackground';
+import { DarkPassInputKitty, DarkRegInputKitty } from '@/components/form/input/InputKitty';
+import { DarkActionButton, DarkAppleButton, LightBackButton } from '@/components/ui/ActionButtons';
+import { DarkTitleAndRemark, DividerLineWithText } from '@/components/ui/ContentComp';
+import { obsidian } from '@/constants/Colors';
+import { SessionKeys } from '@/constants/SessionKeys';
+import { authCredential, useAuthContext } from '@/contexts/AuthenticationContext';
+import useToastHook from '@/hooks/useToastHook';
+import { AsyncStorageService } from '@/services/AsyncStorageService';
+import { AuthService } from '@/services/AuthService';
 import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import React from 'react'
-import { View, Text, SafeAreaView, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react'
+import { View, Text, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 
 class EmailError extends Error {
     constructor(message: string) {
@@ -28,15 +34,55 @@ export default function Login() {
 
     const authContext = useAuthContext();
     const router = useRouter();
-    const [isLoading, setIsLoading] = React.useState<boolean>(false);
-    const [email, setEmail] = React.useState<string>('');
-    const [password, setPassword] = React.useState<string>('');
-    const [passwordError, setPasswordError] = React.useState<string|null>(null);
-    const [emailError, setEmailError] = React.useState<string|null>(null);
-    const [error, setError] = React.useState<string|null>(null);
+    const { showToast, hideToast } = useToastHook();
+    
+    //  local states
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [email, setEmail] = useState<string>('');
+    const [password, setPassword] = useState<string>('');
+    const [passwordError, setPasswordError] = useState<string|null>(null);
+    const [emailError, setEmailError] = useState<string|null>(null);
+    const [error, setError] = useState<string|null>(null);
 
-    const [appleLoading, setAppleLoading] = React.useState<boolean>(false);
-    const [counter, setCounter] = React.useState<number>(0);
+    const [appleLoading, setAppleLoading] = useState<boolean>(false);
+    const [counter, setCounter] = useState<number>(0);
+    const [isDisabled, setIsDisabled] = useState<boolean>(false);
+
+    //  timer ref
+    const timerRef = useRef(0);
+    const [lockTimer, setLockTimer] = useState<number>(30 * 1000); // 30 seconds
+
+    // listen to the disabled state and start the timer
+    useEffect(() => {
+        if (isDisabled) {
+            // start the countdown for 30 seconds
+            timerRef.current = setInterval(() => {
+                setLockTimer((prev) => {
+                    if (prev <= 0) {
+                        clearInterval(timerRef.current);
+
+                        // reset the timer to 30 seconds
+                        setLockTimer(30 * 1000); 
+
+                        // reset the counter and enable the button
+                        setCounter(0);
+
+                        // enable the sign in button
+                        setIsDisabled(false);
+                        return 0;
+                    }
+                    return prev - 1000;
+                });
+            }, 1000);
+
+        }
+
+        return () => {
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+        }
+    }, [isDisabled]);
 
     /**
      * Sign in the user with email and password
@@ -44,20 +90,68 @@ export default function Login() {
      */
     const signIn = async (): Promise<void> => {
         try {
-            setIsLoading(true);
-
             // validation
             if (!email) throw new EmailError('Email is required');
             if (!Helpers.validateEmail(email)) throw new EmailError('Invalid email address');
             if (!password) throw new PasswordError('Password is required');
 
+            // set loading state
+            setIsLoading(true);
+
             //  login the user
-            await authContext.signInWithEmail(email, password);
+            const response = await AuthService.signInWithEmail(email, password);
+
+            //  check if response is successful
+            if (!response.response)
+            {
+                //  check if the counter is less than max attempts
+                if (counter < MAX_PASSWORD_ATTEMPTS - 1) 
+                {
+                    //  accumulate the counter
+                    setCounter(prev => prev + 1);
+
+                    //  construct the error based on the response
+                    const error = new Error(response.message || 'Unable to sign in with email');
+                    error.name = response.exception || 'UnknownError';
+                    throw error;
+                }
+                else 
+                {
+                    //  reset the counter
+                    setCounter(0);
+
+                    //  throw a max attempts error
+                    const error = new Error('Maximum password attempts reached.');
+                    error.name = 'MaxAttemptsError';
+                    throw error;
+                }
+            }
+
+            //  destructure the response
+            const {userId, refreshToken, accessToken, plaidUserToken} = response.response;
+
+            //  set the auth context
+            await authContext.StoreAuthCred({
+                authProvider: 'email',
+                userId,
+                dopa: { accessToken, refreshToken },
+                plaidUserToken: plaidUserToken
+            });
+
+            //  redirect to the home screen
+            router.replace('/(protected)/(tabs)/(home)/home');
         } 
-        catch (error: Error | any) 
+        catch (error: unknown) 
         {
+            console.warn("Login: signIn: error", error);
+
+            //  provide feedback to the user 
             await Helpers.notificationErrorFeedback();
 
+            //  default error message
+            let defaultErrorMessage = 'An unknown error occurred. Please try again later.';
+
+            //  check if the error is an instance of Error
             if (error instanceof Error) 
             {
                 // when it's email error
@@ -73,16 +167,22 @@ export default function Login() {
                     return;
                 }
 
-                //  increase the counter
-                setCounter(prev => prev + 1);
+                // when it's max attempts error, lock the sign in button
+                if (error.name === 'MaxAttemptsError')
+                {
+                    setIsDisabled(true);
+                }
 
-                //  generic error
-                setError(error.message);
+                defaultErrorMessage = error.message || defaultErrorMessage;
             }
-            else
-            {
-                setError('An unknown error occurred');
-            }
+
+            showToast({
+                type: 'error',
+                text1: 'Oops, something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         }
         finally 
         {
@@ -98,7 +198,7 @@ export default function Login() {
         try 
         {
             setAppleLoading(true);
-            await authContext.signInWithApple();
+            console.log('Sign in with Apple is not implemented yet');
         }
         finally
         {
@@ -106,21 +206,9 @@ export default function Login() {
         }
     }
 
-    /**
-     * Handle the on blur event for the email input field
-     * @param e 
-     */
-    const onBlurEvent = (e: any) => {
-        if (email) {
-            const err = Helpers.validateEmail(email) ? null : 'Invalid email address';
-            setEmailError(err);
-        } else {
-            setEmailError(null)
-        }
-    }
-
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: "#fff"}}>
+        <View style={{ flex: 1, backgroundColor: obsidian, position: 'relative' }}>
+            <SecondaryBackground />
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -129,33 +217,39 @@ export default function Login() {
                 <ScrollView
                     contentContainerStyle={{flexGrow: 1}}
                     keyboardShouldPersistTaps="handled"
+                    style={{
+                        backgroundColor: "#100b16f2",
+                    }}
                 >
-                    <View style={{ flex: 1, padding: 35 }}>
+                    <View style={{ flex: 1, padding: 35, paddingTop: 80, paddingBottom: 30 }}>
                         <View style={{ flex: 1, flexDirection: 'column' }}>
                             <View style={{
                                 width: 'auto',
                                 position: 'relative',
-                                paddingBottom: 80,
+                                paddingBottom: 60,
                             }}>
-                                <BackButton 
+                                <LightBackButton 
                                     label={'Back'}
                                     onPressEvent={() => router.back()}
                                 />
                             </View>
-                            <TitleAndRemark 
-                                title={`Welcome to Dopa!`}
+                            <DarkTitleAndRemark 
+                                title={`Budget Like a Boss. Get Rich on Purpose`}
                                 remark={'Please enter your email address and password to login to your account.'}
                             />
                             <View style={{ flex: 1 }}>
                                 <View style={{ marginBottom: 18 }}>
-                                    <RegInputKitty
+                                    <DarkRegInputKitty
                                         value={email} 
-                                        onChangeText={setEmail} 
+                                        onChangeText={(val)=>{
+                                            setEmail(val);
+                                            setEmailError(null);
+                                            setError(null);
+                                        }} 
                                         label={'Email'} 
                                         placeholder={'Enter your email address'} 
                                         disabled={isLoading}
                                         iconLeft={<Feather name='mail' size={14} color="#bcbcbc" />}
-                                        onBlurEvent={onBlurEvent}
                                         onFocusEvent={() => {
                                             setEmailError(null);
                                             setError(null);
@@ -164,9 +258,13 @@ export default function Login() {
                                     />
                                 </View>
                                 <View>
-                                    <PassInputKitty
+                                    <DarkPassInputKitty
                                         value={password} 
-                                        onChangeText={setPassword} 
+                                        onChangeText={(val) => {
+                                            setPassword(val);
+                                            setError(null);
+                                            setPasswordError(null);
+                                        }} 
                                         label={'Password'} 
                                         placeholder={'Enter the password'} 
                                         disabled={isLoading}
@@ -184,9 +282,17 @@ export default function Login() {
                                     <TouchableOpacity onPress={() => router.push('/(login)/(password)/forgotPassword')}>
                                         <Text style={{
                                             fontSize: 14,
-                                            color: '#000',
+                                            color: '#f5f1f8',
                                             textDecorationLine: 'underline',
                                         }}>Forgot password?</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity onPress={() => router.push('/(signup)/accountRegister')} style={{marginLeft: 'auto'}}>
+                                        <Text style={{
+                                            fontSize: 14,
+                                            color: '#f5f1f8',
+                                            textDecorationLine: 'underline',
+                                        }}>Register</Text>
                                     </TouchableOpacity>
                                 </View>
                                 {
@@ -206,23 +312,24 @@ export default function Login() {
                                 <View style={{
                                     marginTop: !error ? 18 : 0,
                                 }}>
-                                    <ActionButton 
+                                    <DarkActionButton 
                                         isLoading={isLoading}
-                                        buttonLabel={'Sign in'}
+                                        buttonLabel={isDisabled ? `Sign in unlock in ${lockTimer / 1000}s`: 'Sign in'}
                                         onPressEvent={signIn}
+                                        isDisabled={isDisabled}
                                     />
                                 </View>
                                 <View>
                                     <DividerLineWithText text='or, you can also'/>                                
                                 </View>
                                 <View>
-                                    <AppleButton isLoading={appleLoading} label={'Continue with Apple Account'} onPressEvent={() => signInWithApple()}/>
+                                    <DarkAppleButton isLoading={appleLoading} label={'Continue with Apple Account'} onPressEvent={() => signInWithApple()}/>
                                 </View>
                             </View>
                         </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     )
 }

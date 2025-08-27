@@ -1,5 +1,6 @@
 import { Image, ImageErrorEventData, ImageLoadEventData, ImageProgressEventData, ImageProps } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
 import { View, Text } from 'react-native';
 
 export function ImageComp({

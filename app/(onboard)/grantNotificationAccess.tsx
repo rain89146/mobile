@@ -26,7 +26,7 @@ export default function GrantNotificationAccess() {
         });
     }, [navigation]);
 
-    const goToNextScreen = () => router.replace('/(onboard)/addBankAccount');
+    const goToNextScreen = () => router.replace('/(protected)/(tabs)/(home)/home');
 
     const skipNotificationAccess = async () => {
         try {

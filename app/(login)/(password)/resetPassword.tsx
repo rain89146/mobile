@@ -2,11 +2,14 @@ import { PassInputKitty } from '@/components/form/input/InputKitty';
 import PasswordEvaluation from '@/components/PasswordEvaluation';
 import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
-import { useAuthContext } from '@/contexts/AuthenticationContext';
+import { usePasswordResetContext } from '@/contexts/PasswordResetContext';
+import { usePasswordStrengthEvaluatorHook } from '@/hooks/usePasswordStrengthEvaluatorHook';
+import useToastHook from '@/hooks/useToastHook';
+import { AuthService } from '@/services/AuthService';
 import { Helpers } from '@/utils/helpers';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
-import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, View, Alert } from 'react-native';
+import { KeyboardAvoidingView, Platform, SafeAreaView, ScrollView, View } from 'react-native';
 
 class PasswordError extends Error {
     constructor(message: string) {
@@ -16,21 +19,17 @@ class PasswordError extends Error {
 }
 
 export default function ResetPassword() {
-    const authContext = useAuthContext();
+    const passwordContext = usePasswordResetContext();
     const navigation = useNavigation();
     const router = useRouter();
-    const {code} = useLocalSearchParams();
+    const { showToast, hideToast } = useToastHook();
 
     const [isLoading, setIsLoading] = React.useState<boolean>(false);
     const [password, setPassword] = React.useState<string>('');
     const [passwordError, setPasswordError] = React.useState<string | null>(null);
 
-    const [containLowercase, setContainLowercase] = React.useState<boolean>(false);
-    const [containUppercase, setContainUppercase] = React.useState<boolean>(false);
-    const [containNumber, setContainNumber] = React.useState<boolean>(false);
-    const [containSpecial, setContainSpecial] = React.useState<boolean>(false);
-    const [lengthMet, setLengthMet] = React.useState<boolean>(false);
-    const [passwordEvalScore, setPasswordEvalScore] = React.useState<number>(0);
+    //  Password strength evaluator hook
+    const { passwordEvalScore, evaluatePassword, passwordEvalCleanup } = usePasswordStrengthEvaluatorHook();
 
     //  Set the header options
     useEffect(() => {
@@ -41,22 +40,18 @@ export default function ResetPassword() {
             setIsLoading(false);
             setPassword('');
             setPasswordError(null);
-            setContainLowercase(false);
-            setContainUppercase(false);
-            setContainNumber(false);
-            setContainSpecial(false);
-            setLengthMet(false);
-            setPasswordError(null);
+            passwordEvalCleanup();
         }
     }, [navigation])
 
-    //  Set the password evaluation score
-    //  This is a simple evaluation score based on the password criteria
-    //  Each criteria is worth 20 points, for a total of 100 points
+    // when mounted, check if the email is provided in the context
     useEffect(() => {
-        const score = (containLowercase ? 20 : 0) + (containUppercase ? 20 : 0) + (containNumber ? 20 : 0) + (containSpecial ? 20 : 0) + (lengthMet ? 20 : 0);
-        setPasswordEvalScore(score);
-    }, [containLowercase, containUppercase, containNumber, containSpecial, lengthMet])
+        if (!passwordContext.email) 
+        {
+            router.replace('/(login)/(password)/forgotPassword');
+            return;
+        }
+    }, [passwordContext, router]);
 
     /**
      * Submit the password
@@ -71,12 +66,20 @@ export default function ResetPassword() {
             if (!password) throw new PasswordError('Password is required');
             if (Helpers.validatePassword(password) === false) throw new PasswordError('Password must include at least 8 characters, one uppercase letter, one lowercase letter, one number, and one special character.');
 
+            //  check if the email is set in the context
+            if (!passwordContext.email) throw new Error('Email is missing from the context');
+
             //  complete the sign up process
-            const response = await authContext.resetPassword(code as string, password)
+            const response = await AuthService.resetPassword(passwordContext.email, password)
 
             //  when the response is not successful
-            if (!response.status) throw new Error(response.message);
-            if (!response.response) throw new Error('Unable to complete sign up process');
+            if (!response.status)
+            {
+                const { message, exception } = response;
+                const error = new Error(message || 'An error occurred while resetting the password');
+                error.name = exception;
+                throw error;
+            }
 
             //  provide feedback to user
             Helpers.impactSoftFeedback();
@@ -86,17 +89,36 @@ export default function ResetPassword() {
         }
         catch (error: Error | any)
         {
-            console.log('Error submitting password: ', error);
-            
+            console.log('ResetPassword: submitPassword: ', error);
+
+            //  provide feedback to user
             Helpers.notificationErrorFeedback();
 
-            if (error.name === 'PasswordError')
+            //  default error message
+            let defaultErrorMessage = 'An error occurred while submitting the password. Please try again later.';
+
+            //  when the error is an instance of Error
+            if (error instanceof Error) 
             {
-                setPasswordError(error.message);
-            } 
-            else {
-                Alert.alert('Error', 'An error occurred while submitting the password. Please try again.');
+                //  when the error is a known error
+                if (error.name === 'PasswordError') 
+                {
+                    setPasswordError(error.message);
+                    return;
+                }
+
+                //  when other errors are thrown
+                defaultErrorMessage = error.message;
             }
+
+            //  alert other errors
+            showToast({
+                type: 'error',
+                text1: 'Oops, something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         }
         finally 
         {
@@ -111,16 +133,7 @@ export default function ResetPassword() {
      */
     const passwordFieldOnChange = (value: string): void => {
         setPassword(value);
-        if (value) 
-        {
-            setContainLowercase(/[a-z]/.test(value));
-            setContainUppercase(/[A-Z]/.test(value));
-            setContainNumber(/[0-9]/.test(value));
-            setContainSpecial(/[!@#$%^&*?:{}|<>_\-~;=+]/.test(value));
-            setLengthMet(value.length >= 8);
-        } else {
-            setPasswordEvalScore(0);
-        }
+        evaluatePassword(value);
     }
 
     /**

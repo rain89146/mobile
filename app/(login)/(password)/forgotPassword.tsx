@@ -1,12 +1,14 @@
 import { RegInputKitty } from '@/components/form/input/InputKitty';
 import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
-import { useAuthContext } from '@/contexts/AuthenticationContext';
+import { usePasswordResetContext } from '@/contexts/PasswordResetContext';
+import useToastHook from '@/hooks/useToastHook';
+import { AuthService } from '@/services/AuthService';
 import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
 import { useNavigation, useRouter } from 'expo-router';
-import React from 'react'
-import { View, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView, Alert } from 'react-native'
+import React, {useEffect, useState} from 'react'
+import { View, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 
 class EmailError extends Error {
     constructor(message: string) {
@@ -15,56 +17,62 @@ class EmailError extends Error {
     }
 }
 
-export default function ForgotPassword() {
+export default function ForgotPassword() 
+{
     const navigation = useNavigation();
-    const authContext = useAuthContext();
     const router = useRouter();
+    const passwordContext = usePasswordResetContext();
+    const { showToast, hideToast } = useToastHook();
 
-    const [isLoading, setIsLoading] = React.useState<boolean>(false);
-    const [email, setEmail] = React.useState<string>('');
-    const [emailError, setEmailError] = React.useState<string|null>(null);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [email, setEmail] = useState<string>('');
+    const [emailError, setEmailError] = useState<string|null>(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
         navigation.setOptions({ headerShown: false })
     }, [navigation])
 
-    /**
-     * Handle the on blur event for the email input field
-     * @param e 
-     */
-    const onBlurEvent = (e: any) => {
-        if (email) {
-            const err = Helpers.validateEmail(email) ? null : 'Invalid email address';
-            setEmailError(err);
-        } else {
-            setEmailError(null)
+    //  cleanup when the component unmounts
+    useEffect(() => {
+        return () => {
+            setIsLoading(false);
+            setEmail('');
+            setEmailError(null);
         }
-    }
+    }, [])
 
     const sendPasswordResetRequest = async (): Promise<void> => {
         setEmailError(null);
         setIsLoading(true);
         
         try {
+            //  trim the email input
+            const trimmedEmail = email.trim();
+
             // validation
-            if (!email) throw new EmailError('Email is required');
-            if (!Helpers.validateEmail(email)) throw new EmailError('Invalid email address');
+            if (!trimmedEmail) throw new EmailError('Email is required');
+            if (!Helpers.validateEmail(trimmedEmail)) throw new EmailError('Invalid email address');
 
             //  send password reset request
-            const apiResponse = await authContext.sendPasswordResetRequest(email);
+            const apiResponse = await AuthService.sendPasswordResetRequest(trimmedEmail);
 
             //  check if the response is successful
-            if (!apiResponse.status) throw new Error(apiResponse.message);
-            if (!apiResponse.response) throw new Error('Unable to send password reset request');
+            if (!apiResponse.status)
+            {
+                const {message, exception} = apiResponse;
+                const error = new Error(message || 'An error occurred while sending the password reset request');
+                error.name = exception;
+                throw error;
+            }
 
             //  provide feedback to the user
             Helpers.impactSoftFeedback();
 
+            //  store the email in the context
+            passwordContext.setEmail(trimmedEmail);
+
             //  redirect to the confirmation screen
-            router.push({
-                pathname: '/(login)/(password)/emailConfirmation',
-                params: { email }
-            });
+            router.replace('/(login)/(password)/emailConfirmation');
         } 
         catch (error: Error|any) 
         {
@@ -72,16 +80,31 @@ export default function ForgotPassword() {
 
             // provide feedback to user
             Helpers.notificationErrorFeedback();
-            
-            //  show email error message
-            if (error.name === 'EmailError') 
-            {
-                setEmailError(error.message);
-                return;
-            }
 
-            //  alert other errors
-            Alert.alert('Oops! Something went wrong', error.message);
+            //  default error message
+            let defaultErrorMessage = 'We were unable to send the password reset request. Please try again later.';
+
+            //
+            if (error instanceof EmailError) 
+            {
+                //  show email error message
+                if (error.name === 'EmailError') 
+                {
+                    setEmailError(error.message);
+                    return;
+                }
+
+                defaultErrorMessage = error.message;
+            }
+            
+            // 
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         } 
         finally 
         {
@@ -124,7 +147,6 @@ export default function ForgotPassword() {
                                     placeholder={'Enter your email address'} 
                                     disabled={isLoading}
                                     iconLeft={<Feather name='mail' size={14} color="#bcbcbc" />}
-                                    onBlurEvent={onBlurEvent}
                                     onFocusEvent={() => setEmailError(null)}
                                     error={emailError}
                                 />

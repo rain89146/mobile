@@ -1,6 +1,6 @@
 import { router, useNavigation } from 'expo-router';
 import React from 'react'
-import { View, SafeAreaView, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
+import { View, SafeAreaView, KeyboardAvoidingView, Platform, ScrollView } from 'react-native'
 import { RegInputKitty } from '@/components/form/input/InputKitty';
 import Feather from '@expo/vector-icons/Feather';
 import { Helpers } from '@/utils/helpers';
@@ -9,6 +9,8 @@ import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
 import { SubContentComp, TitleAndRemark } from '@/components/ui/ContentComp';
 import { ExternalLink } from '@/components/ExternalLink';
 import { ThemedText } from '@/components/ThemedText';
+import { SignupService } from '@/services/SignupService';
+import useToastHook from '@/hooks/useToastHook';
 
 class EmailError extends Error {
     constructor(message: string) {
@@ -22,6 +24,7 @@ export default function AccountRegister()
     //  hooks
     const signupContext = useSignupContext();
     const navigation = useNavigation();
+    const { showToast, hideToast } = useToastHook();
 
     //  local states
     const [isLoading, setIsLoading] = React.useState(false);
@@ -34,6 +37,76 @@ export default function AccountRegister()
     }, [navigation])
 
     /**
+     * Generate a sign up record
+     * @param email email address to generate sign up record for
+     * @returns record id
+     */
+    const generateSignUpRecord = async (email: string): Promise<string> => {
+        try {
+            //  check if email is not empty
+            if (!email) throw new EmailError('Email is required');
+
+            // validation
+            if (!Helpers.validateEmail(email)) throw new EmailError('Invalid email address');
+
+            //  call the signup service to generate a sign up record
+            const response = await SignupService.generateSignUpRecord(email);
+
+            //  check if response is successful
+            if (!response.status)
+            {
+                const {message, exception} = response;
+                const error = new Error(message);
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
+
+            //  return the record id
+            return response.response;
+
+        } catch (error) {
+            console.log('AccountRegister: generateSignUpRecord: error:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Send email verification code
+     * @param email email address to send verification code to
+     * @returns 
+     */
+    const sentEmailVerificationCode = async (email: string): Promise<boolean> => {
+        try {
+            
+            //  check if email is not empty
+            if (!email) throw new EmailError('Email is required');
+
+            // validation
+            if (!Helpers.validateEmail(email)) throw new EmailError('Invalid email address');
+
+            //  call the signup service to send verification code
+            const response = await SignupService.sendVerificationCode(email);
+
+            //  check if response is successful
+            if (!response.status)
+            {
+                const {message, exception} = response;
+                const error = new Error(message);
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
+
+            //  return the response
+            return response.response;
+
+        } catch (error) 
+        {
+            console.log('AccountRegister: sentEmailVerificationCode: error:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Sign up with email
      * @returns {Promise<void>}
      */
@@ -42,26 +115,15 @@ export default function AccountRegister()
         setIsLoading(true);
 
         try {
-            // validation
-            if (!email) throw new EmailError('Email is required');
-            if (!Helpers.validateEmail(email)) throw new EmailError('Invalid email address');
-
-            //  generate record id
-            const recordResponse = await signupContext.generateSignUpRecord(email);
-
-            //  when response is not successful
-            if (!recordResponse.status) throw new Error(recordResponse.message);
-            if (!recordResponse.response) throw new Error('Unable to generate record id');
-
             // get record id
-            const recordId = recordResponse.response;
+            const recordId = await generateSignUpRecord(email);
 
             //  send verification code
-            const response = await signupContext.sendVerificationCode(email);
+            const hasSent = await sentEmailVerificationCode(email);
 
-            //  check if response is successful
-            if (!response.status) throw new Error(response.message);
-
+            //  check if the verification code is sent successfully
+            if (!hasSent) throw new Error('Unable to send verification code. Please try again later.');
+            
             //  set email in signup context
             signupContext.setSignUpPayload({...signupContext.signUpPayload, email, recordId });
 
@@ -71,22 +133,37 @@ export default function AccountRegister()
             //  redirect to email confirmation page
             router.replace('/(signup)/emailConfirmation');
         } 
-        catch (error: Error|any) 
+        catch (error: unknown) 
         {
-            console.log('Error signing up with email', error);
+            console.log('AccountRegister: signUpWithEmail: error:', error);
 
             // provide feedback to user
             Helpers.notificationErrorFeedback();
 
+            //  default error message
+            let defaultErrorMessage = 'We were unable to create your account. Please try again later.';
+
             // when error is email error
-            if (error.name === 'EmailError')
+            if (error instanceof Error) 
             {
-                setEmailError(error.message);
-                return;
-            } 
+                if (error.name === 'EmailError') 
+                {
+                    setEmailError(error.message);
+                    return;
+                } 
+                
+                //  default error message
+                defaultErrorMessage = error.message || defaultErrorMessage;
+            }
             
             // for everything else
-            Alert.alert('Oops! Something went wrong', 'We are unable to process your request at this time. Please try again later.');
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            })
         } 
         finally 
         {

@@ -3,7 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { usePermissionContext } from "./PermissionContext";
 import Constants from 'expo-constants';
-import useAsyncStorageHook from "@/hooks/useAsyncStorageHook";
+import {AsyncStorageService} from "@/hooks/useAsyncStorageHook";
 import { SessionKeys } from "@/constants/SessionKeys";
 
 export type NotificationContextType = {
@@ -22,50 +22,12 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
     
     //  get the permission context
     const {allowNotificationsUse, requestToEnableNotifications} = usePermissionContext();
-
-    //  storage
-    const {storeDataIntoStorage, getDataFromStorage} = useAsyncStorageHook();
     
     //  local notification state
     const [expoPushToken, setExpoPushToken] = useState<string|null>(null);
     const [notification, setNotification] = useState<Notifications.Notification | undefined>(undefined);
-    const notificationListener = useRef<Notifications.EventSubscription>(null);
-    const responseListener = useRef<Notifications.EventSubscription>(null);
-    
-    // 
-    useEffect(() => {
-
-        //  register the device for push notifications 
-        _registerForPushNotificationsAsync()
-        .then((token: string | null) => token && setExpoPushToken(token))
-        .catch((error: Error) => console.error('Error registering for push notifications:', error));
-
-        //  listen for notifications
-        notificationListener.current = Notifications.addNotificationReceivedListener(
-            (notification: Notifications.Notification) => {
-                console.log(notification);
-                setNotification(notification);
-            }
-        )
-
-        //  listen for notification responses
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(
-            (response: Notifications.NotificationResponse) => {
-                console.log(response);
-            }
-        );
-
-        return () => {
-
-            // Clean up the notification listeners
-            notificationListener.current &&
-                notificationListener.current.remove();
-
-            // Clean up the response listeners
-            responseListener.current &&
-                responseListener.current.remove();
-        };
-    }, []);
+    const notificationListener = useRef<Notifications.EventSubscription|null>(null);
+    const responseListener = useRef<Notifications.EventSubscription|null>(null);
 
     /**
      * Registers the device for push notifications and returns the token
@@ -80,7 +42,7 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
             if (!allowNotificationsUse) await requestToEnableNotifications();
 
             //  check if the token is already stored
-            const storedToken = await getDataFromStorage<string>(SessionKeys.NOTIFICATION_KEY);
+            const storedToken = await AsyncStorageService.getDataFromStorage<string>(SessionKeys.NOTIFICATION_KEY);
 
             //  get project id
             const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
@@ -94,7 +56,7 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
             const token = notificationTokenObj.data;
 
             //  store the token in the storage
-            if (token && token !== storedToken) await storeDataIntoStorage<string>(SessionKeys.NOTIFICATION_KEY, token);
+            if (token && token !== storedToken) await AsyncStorageService.storeDataIntoStorage<string>(SessionKeys.NOTIFICATION_KEY, token);
             
             //  return the token
             return token;
@@ -103,6 +65,50 @@ const NotificationContextProvider = ({children}: {children: React.ReactNode}) =>
             throw error;
         }
     }
+
+    // when the component mounts, register for push notifications
+    useEffect(() => {
+        (async () => {
+            try {
+                //  register the device for push notifications 
+                const token = await _registerForPushNotificationsAsync();
+                if (!token) throw new Error('Failed to get push notification token');
+
+                //  set the expo push token
+                setExpoPushToken(token);
+
+                //  listen for notifications
+                notificationListener.current = Notifications.addNotificationReceivedListener(
+                    (notification: Notifications.Notification) => {
+                        console.log(notification);
+                        setNotification(notification);
+                    }
+                )
+        
+                //  listen for notification responses
+                responseListener.current = Notifications.addNotificationResponseReceivedListener(
+                    (response: Notifications.NotificationResponse) => {
+                        console.log(response);
+                    }
+                );
+
+            } catch (error) {
+                console.error('Error registering for push notifications:', error);
+            }
+        })();
+
+        //  cleanup function to remove the listeners
+        return () => {
+
+            // Clean up the notification listeners
+            notificationListener.current &&
+                notificationListener.current.remove();
+
+            // Clean up the response listeners
+            responseListener.current &&
+                responseListener.current.remove();
+        };
+    }, []);
 
     /**
      * Sends a local notification

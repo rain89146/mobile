@@ -1,10 +1,9 @@
-import { useRoute } from '@react-navigation/native';
 import { useNavigation, useRouter } from 'expo-router';
 import React, { useEffect } from 'react'
 import { View, Text, Button } from 'react-native'
 import * as Haptics from 'expo-haptics';
 
-export default function index() {
+export default function Index() {
     const navigation = useNavigation();
     const router = useRouter();
 

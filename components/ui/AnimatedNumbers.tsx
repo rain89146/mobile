@@ -1,3 +1,4 @@
+import React from "react";
 import { AnimatedRollingNumber, AnimatedRollingNumberProps } from "react-native-animated-rolling-numbers";
 import { StyleProp, TextStyle } from "react-native";
 

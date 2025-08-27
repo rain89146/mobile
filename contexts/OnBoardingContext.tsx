@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { SessionKeys } from "@/constants/SessionKeys";
-import useAsyncStorageHook from "@/hooks/useAsyncStorageHook";
+import {AsyncStorageService} from "@/hooks/useAsyncStorageHook";
 
 type OnBoardingContextType = {
     onBoardingProgress: OnBoardingProgress;
@@ -72,17 +72,11 @@ export const OnBoardingContextProvider = ({children}: {children: React.ReactNode
         plaid: null
     });
 
-    //  storage
-    const {
-        storeDataIntoStorage, 
-        getDataFromStorage
-    } = useAsyncStorageHook();
-
     //  when mount, query the local storage to check
     useEffect(() => {
-        const loadOnBoardingProgress = async () => {
+        (async () => {
             try {
-                const progress = await getDataFromStorage(SessionKeys.ON_BOARDING_KEY) as OnBoardingProgress;
+                const progress = await AsyncStorageService.getDataFromStorage(SessionKeys.ON_BOARDING_KEY) as OnBoardingProgress;
                 if (progress)
                 {
                     setOnBoardingProgress(progress);
@@ -90,8 +84,7 @@ export const OnBoardingContextProvider = ({children}: {children: React.ReactNode
             } catch (error) {
                 console.log("OnBoardingContextProvider: on mount", error);
             }
-        }
-        loadOnBoardingProgress();
+        })();
     }, []);
 
     /**
@@ -104,7 +97,7 @@ export const OnBoardingContextProvider = ({children}: {children: React.ReactNode
             ...progress
         });
         
-        await storeDataIntoStorage(SessionKeys.ON_BOARDING_KEY, {
+        await AsyncStorageService.storeDataIntoStorage(SessionKeys.ON_BOARDING_KEY, {
             ...onBoardingProgress,
             ...progress
         });

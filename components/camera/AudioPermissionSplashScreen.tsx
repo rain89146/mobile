@@ -1,3 +1,4 @@
+import React from 'react';
 import { PermissionResponse } from 'expo-av/build/Audio'
 import CameraScreenOuterLayer from './CameraScreenOuterLayer';
 import { PermissionContentComp } from './PermissionContentComp';

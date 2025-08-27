@@ -1,3 +1,4 @@
+import React from 'react';
 import CameraScreenOuterLayer from './CameraScreenOuterLayer';
 import { PermissionContentComp } from './PermissionContentComp';
 import * as MediaLibrary from 'expo-media-library';

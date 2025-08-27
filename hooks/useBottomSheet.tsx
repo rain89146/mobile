@@ -1,7 +1,7 @@
 import { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import { RefObject, useState } from 'react'
 
-export default function useBottomSheet(ref: RefObject<BottomSheetMethods>) {
+export default function useBottomSheet(ref: RefObject<BottomSheetMethods>|null) {
     
     // This hook is used to manage the state of a bottom sheet component.
     const [isOpen, setIsOpen] = useState<boolean>(false);
@@ -11,6 +11,7 @@ export default function useBottomSheet(ref: RefObject<BottomSheetMethods>) {
      * @returns 
      */
     const openBottomSheet = () => {
+        if (!ref) return;
         if (!ref.current) return;
         ref.current.expand();
     }
@@ -20,6 +21,7 @@ export default function useBottomSheet(ref: RefObject<BottomSheetMethods>) {
      * @returns 
      */
     const closeBottomSheet = () => {
+        if (!ref) return;
         if (!ref.current) return;
         ref.current.close();
     }

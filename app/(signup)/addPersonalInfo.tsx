@@ -2,6 +2,8 @@ import { RegInputKitty } from '@/components/form/input/InputKitty';
 import { ActionButton, BackButton } from '@/components/ui/ActionButtons';
 import { TitleAndRemark } from '@/components/ui/ContentComp';
 import { useSignupContext } from '@/contexts/SignupContext';
+import useToastHook from '@/hooks/useToastHook';
+import { SignupService } from '@/services/SignupService';
 import { Helpers } from '@/utils/helpers';
 import Feather from '@expo/vector-icons/Feather';
 import { useNavigation, useRouter } from 'expo-router';
@@ -41,6 +43,9 @@ export default function AddPersonalInfo() {
     const [lastName, setLastName] = React.useState<string>('');
     const [lastNameError, setLastNameError] = React.useState<string|null>(null);
 
+    //  toast hook
+    const { showToast, hideToast } = useToastHook();
+    
     // set the header to false
     React.useEffect(() => {
         navigation.setOptions({ headerShown: false })
@@ -65,42 +70,62 @@ export default function AddPersonalInfo() {
             if (!lastName) throw new LastNameError('Last name is required');
             if (!Helpers.validatePersonName(lastName)) throw new LastNameError('Invalid name format'); 
 
-            //  store in the context
-            signupContext.setSignUpPayload({...signupContext.signUpPayload, firstName, lastName });
-
             //  store personal information
-            const response = await signupContext.storePersonalInformation(signupContext.signUpPayload.recordId as string, firstName, lastName);
+            const response = await SignupService.addPersonalDetails(signupContext.signUpPayload.recordId as string, firstName, lastName);
 
             //  check if response is successful
-            if (!response.status) throw new Error(response.message);
-
-            //  check if response is successful
-            if (!response.response) throw new Error('Unable to store personal information');
+            if (!response.status)
+            {
+                const {message, exception} = response;
+                const error = new Error(message || 'Unknown server error');
+                error.name = exception || 'UnknownError';
+                throw error;
+            }
 
             //  provide feedback to user
             Helpers.impactSoftFeedback();
+
+            //  store in the context
+            signupContext.setSignUpPayload({...signupContext.signUpPayload, firstName, lastName });
 
             //  navigate to the next screen
             router.replace('/(signup)/createPassword');
 
         } 
-        catch (error: Error|any) 
+        catch (error: unknown) 
         {
+            console.log('AddPersonalInfo: submitInformation: error:', error);
+
+            // provide feedback to user
             Helpers.notificationErrorFeedback();
 
-            if (error.name === 'FirstNameError')
+            // default error message
+            let defaultErrorMessage = 'We were unable to add your personal information. Please try again later.';
+
+            // handle specific errors
+            if (error instanceof Error) 
             {
-                setFirstNameError(error.message);
-            } 
-            else if (error.name === 'LastNameError') 
-            {
-                setLastNameError(error.message);
+                if (error.name === 'FirstNameError')
+                {
+                    setFirstNameError(error.message);
+                    return;
+                }
+                if (error.name === 'LastNameError')
+                {
+                    setLastNameError(error.message);
+                    return;
+                }
+
+                defaultErrorMessage = error.message || defaultErrorMessage;
             }
-            else 
-            {
-                console.log('Error signing up with email', error);
-                Alert.alert('Something went wrong', error.message);
-            }
+
+            showToast({
+                type: 'error',
+                text1: 'Oops! Something went wrong',
+                text2: defaultErrorMessage,
+                position: 'bottom',
+                onPress: () => hideToast()
+            });
         } 
         finally 
         {

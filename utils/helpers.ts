@@ -88,4 +88,61 @@ export class Helpers
             no_symbols: true,
         })
     }
+
+    static formatDate(timestamp: string)
+    {
+        const today = new Date();
+        const isToday = new Date(timestamp).toDateString() === today.toDateString();
+
+        let formattedDate = new Date(timestamp).toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h12',
+        });
+
+        // // if the timestamp is today, format it to show only the time
+        // if (isToday) {
+        //     const hoursDiff = Math.floor((today.getTime() - new Date(timestamp).getTime()) / 1000 / 60 / 60);
+
+        //     // if the difference is less than 24 hours and greater than 1 hour, show the hours difference
+        //     if (hoursDiff < 24 && hoursDiff >= 1) 
+        //     {
+        //         formattedDate = `${hoursDiff} hours ago`;
+        //         return;
+        //     }
+
+        //     // if the difference is less than 1 hour, show the minutes difference
+        //     const minutesDiff = Math.floor((today.getTime() - new Date(timestamp).getTime()) / 1000 / 60);
+        //     if (minutesDiff < 60 && minutesDiff >= 1) 
+        //     {
+        //         formattedDate = `${minutesDiff} minutes ago`;
+        //         return;
+        //     }
+
+        //     // if the difference is less than 1 minute, show "Just now"
+        //     formattedDate = 'Just now';
+        // }
+
+        return formattedDate;
+    }
+
+    // Helper function to darken/lighten colors for gradients
+    static shadeColor(color: string, percent: number): string {
+        let R = parseInt(color.substring(1, 3), 16);
+        let G = parseInt(color.substring(3, 5), 16);
+        let B = parseInt(color.substring(5, 7), 16);
+
+        // Apply percentage change and round to integers
+        R = Math.round(Math.min(255, Math.max(0, R + R * percent / 100)));
+        G = Math.round(Math.min(255, Math.max(0, G + G * percent / 100)));
+        B = Math.round(Math.min(255, Math.max(0, B + B * percent / 100)));
+
+        const RR = R.toString(16).padStart(2, '0');
+        const GG = G.toString(16).padStart(2, '0');
+        const BB = B.toString(16).padStart(2, '0');
+
+        return `#${RR}${GG}${BB}`;
+    }
 }

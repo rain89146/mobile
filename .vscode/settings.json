@@ -15,5 +15,9 @@
         "**/.settings": true,
         "**/.exchange_modules_tmp": true,
         ".mule": true
-    }
+    },
+    "cSpell.words": [
+        "chatbubbles",
+        "Pressable"
+    ]
 }
