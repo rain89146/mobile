@@ -100,7 +100,6 @@
           "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone."
         }
       ],
-      "react-native-vision-camera",
       "expo-web-browser",
       [
         "expo-secure-store",

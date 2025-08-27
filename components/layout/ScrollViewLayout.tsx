@@ -1,8 +1,6 @@
 import React from 'react'
 import { GestureResponderEvent, PanResponder, PanResponderGestureState, Text, ScrollView, View, FlatList } from 'react-native'
 import Animated, { useAnimatedScrollHandler, useSharedValue, useAnimatedStyle, withTiming, SharedValue } from 'react-native-reanimated';
-import { TypingAnimation } from 'react-native-typing-animation';
-import type { ListRenderItem, ListRenderItemInfo, ViewabilityConfig } from 'react-native';
 import type { ViewToken } from 'react-native';
 
 export function ScrollViewLayout({ children }: { children: React.ReactNode }) {
@@ -129,15 +127,7 @@ export function ScrollViewRefreshLayout({
             }}
         >
             <Animated.View style={[{}, refreshContainerStyles]}>
-                {refreshing && <TypingAnimation 
-                    dotColor="black"
-                    dotMargin={3}
-                    dotAmplitude={3}
-                    dotSpeed={0.15}
-                    dotRadius={2.5}
-                    dotX={12}
-                    dotY={6}
-                />}
+                {refreshing && <Text>Refreshing...</Text>}
             </Animated.View>
             <Animated.View
                 style={[{ flex: 1, paddingHorizontal: 25 }, pullDownStyles]}
